@@ -1,0 +1,82 @@
+# ملف التثبيت لويندوز: بيتبني على سيرفرات GitHub
+# - لما يتعمل إصدار جديد بعلامة (Tag) زي v0.7.0 ← يتبني وينزل في صفحة الإصدارات، والبرامج المثبّتة تتحدث لوحدها
+# - أو يدوياً من تبويب Actions (Run workflow) ← نسخة تجريبية تتحمّل من صفحة التشغيل نفسها
+name: بناء ملف التثبيت (ويندوز)
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      STRICT_FONTS: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: التأكد إن رقم الإصدار مطابق للعلامة
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG=$(node -p "require('./desktop/package.json').version")
+          APPV=$(node -p "require('fs').readFileSync('src/core.js','utf8').match(/APP_VERSION = '([^']+)'/)[1]")
+          echo "tag=$TAG package=$PKG app=$APPV"
+          if [ "$TAG" != "$PKG" ] || [ "$TAG" != "$APPV" ]; then
+            echo "::error::رقم الإصدار في العلامة ($TAG) لازم يساوي desktop/package.json ($PKG) و src/core.js ($APPV)"
+            exit 1
+          fi
+
+      - name: بناء ورّاق (نص القرآن + البرنامج)
+        run: |
+          python build_quran.py
+          python build.py
+
+      - name: تثبيت أدوات البناء
+        working-directory: desktop
+        run: npm install --no-audit --no-fund
+
+      - name: تجهيز الواجهة والخطوط
+        working-directory: desktop
+        run: node prepare.js
+
+      - name: بناء ملف التثبيت
+        working-directory: desktop
+        shell: bash
+        run: npx electron-builder --win --x64 --publish never
+
+      # التوقيع الرقمي (SignPath) يتضاف هنا بعد قبول طلب ورّاق في برنامج SignPath Foundation
+
+      - name: إرفاق ملف التثبيت بالإصدار (وملفات التحديث التلقائي)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            desktop/release/*.exe
+            desktop/release/*.exe.blockmap
+            desktop/release/latest.yml
+          fail_on_unmatched_files: true
+
+      - name: رفع نسخة تجريبية للتحميل
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Warraq-Setup-test
+          path: |
+            desktop/release/*.exe
+          retention-days: 14
