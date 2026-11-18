@@ -83,10 +83,22 @@ body.hide-nav.hide-ref .workspace{grid-template-columns:minmax(0,1fr)}
 .page h2{font-size:1.3em;color:var(--primary);margin:.5em 0 .3em;font-weight:700}
 .page h3{font-size:1.1em;color:#33504F;margin:.4em 0 .2em;font-weight:700}
 .page blockquote{margin:.4em 1.5em;padding:.2em 1em;border-inline-start:3px solid var(--accent);color:#444}
-.page table{border-collapse:collapse;width:100%;margin:.4em 0}
-.page td,.page th{border:1px solid #999;padding:4px 8px;vertical-align:top;min-width:2em}
-.page th{background:#F4EFE6}
+.page table{border-collapse:collapse;width:100%;max-width:100%;margin:.4em 0;font-size:.85em;line-height:1.4}
+.page table.wq-grid{table-layout:auto}
+.page table.compact{font-size:.75em}.page table.dense{font-size:.6em}.page table.dense td,.page table.dense th{padding:2px}
+.page td,.page th{border:1px solid #999;padding:3px 5px;vertical-align:middle;text-align:start;overflow-wrap:break-word;word-break:normal}
+.page th{background:#F4EFE6;font-weight:700}
 .page img{max-width:100%;height:auto}
+/* تسطير الصفحة: كل سطر كتابة على خط */
+.page.ruled{line-height:var(--rule)!important;background-image:var(--rule-img);background-size:var(--rule-w) var(--rule);background-position:0 var(--rule-off);min-height:24.7cm}
+.page.ruled p,.page.ruled li,.page.ruled ul,.page.ruled ol,.page.ruled h2,.page.ruled h3{margin-top:0;margin-bottom:0}
+.page.ruled h1{line-height:calc(var(--rule) * 2);margin:0}
+.page.ruled blockquote{margin-top:0;margin-bottom:0;padding-top:0;padding-bottom:0}
+.page.ruled table{background:#fff;line-height:1.4}
+.page.ruled .wq-ayah{line-height:inherit}
+.page.pv-body.ruled{background:none;min-height:0}
+.pv-box.ruled{background-image:var(--rule-img);background-size:var(--rule-w) var(--rule);background-position:0 var(--rule-off);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pv-box.ruled .pv-fns{background:#fff}
 .page.num-ar ol{list-style-type:arabic-indic}
 .page hr.wq-pagebreak{border:none;border-top:2px dashed var(--accent);margin:1em 0;position:relative}
 .page hr.wq-pagebreak::after{content:var(--pb-label);position:absolute;top:-.8em;inset-inline-start:50%;background:#fff;color:var(--accent);font-size:11px;font-family:var(--ui-font);padding:0 6px}
@@ -293,7 +305,7 @@ const I18N = {
     table: 'جدول', image: 'صورة', pageBreak: 'فاصل صفحة', hr: 'خط فاصل', quotes: '« »', specialChar: 'رمز',
     pageBreakLabel: 'صفحة جديدة',
     pageSize: 'حجم الورقة', margins: 'الهوامش', mNormal: 'عادية', mNarrow: 'ضيقة', mWide: 'عريضة',
-    lineSpacing: 'تباعد الأسطر', docLang: 'لغة المستند',
+    lineSpacing: 'تباعد الأسطر', ruling: 'تسطير الصفحة', ruleOff: 'بدون', ruleDots: 'منقّط', ruleDash: 'متقطّع', ruleLine: 'متصل', ruleGap: 'المسافة بين السطور', cm: 'سم', docLang: 'لغة المستند',
     langAr: 'العربية', langEn: 'الإنجليزية', langFr: 'الفرنسية',
     zoom: 'تكبير', showMap: 'خريطة الرسالة', showRefs: 'لوحة المراجع', focus: 'وضع التركيز', exitFocus: 'خروج من وضع التركيز',
     dailyGoal: 'هدف اليوم', words: 'كلمة', chars: 'حرف', pagesApprox: 'صفحة تقريبا\u064B',
@@ -374,7 +386,7 @@ const I18N = {
     table: 'Table', image: 'Image', pageBreak: 'Page break', hr: 'Divider', quotes: '« »', specialChar: 'Symbol',
     pageBreakLabel: 'New page',
     pageSize: 'Page size', margins: 'Margins', mNormal: 'Normal', mNarrow: 'Narrow', mWide: 'Wide',
-    lineSpacing: 'Line spacing', docLang: 'Document language',
+    lineSpacing: 'Line spacing', ruling: 'Ruled page', ruleOff: 'None', ruleDots: 'Dotted', ruleDash: 'Dashed', ruleLine: 'Solid', ruleGap: 'Line gap', cm: 'cm', docLang: 'Document language',
     langAr: 'Arabic', langEn: 'English', langFr: 'French',
     zoom: 'Zoom', showMap: 'Document map', showRefs: 'References panel', focus: 'Focus mode', exitFocus: 'Exit focus mode',
     dailyGoal: "Today's goal", words: 'words', chars: 'characters', pagesApprox: 'pages approx.',
@@ -436,7 +448,7 @@ const I18N = {
 };
 
 /* ===== core: الثوابت والحالة والأدوات العامة ===== */
-const APP_VERSION = '0.6.1';
+const APP_VERSION = '0.6.2';
 const APP_STAGE = '6';
 const APP_UPDATED = '2026-11-18';
 const FILE_FORMAT = 'warraq';
@@ -541,7 +553,36 @@ function applyDocSettings() {
   page.classList.add('ls-' + s.lineSpacing);
   page.classList.toggle('num-ar', s.numerals === 'arabic' && s.lang === 'ar');
   page.dataset.placeholder = t('placeholder');
+  page.classList.toggle('ruled', isRuled());
+  updateRuling();
 }
+/* ---------- تسطير الصفحة (مثل الكراسة) ---------- */
+const RULE_COLOR = '#8DB4BB';
+function isRuled() { const r = WQ.doc && WQ.doc.settings.ruled; return !!r && r !== 'off'; }
+function updateRuling() {
+  const root = document.documentElement.style;
+  if (!isRuled()) { WQ._rule = null; return; }
+  const s = WQ.doc.settings;
+  const gap = Math.round((+s.ruleGap || 1) * 37.7953 * 100) / 100;
+  const kind = s.ruled;
+  const tw = kind === 'dots' ? 6 : (kind === 'dash' ? 10 : 4);
+  const shape = kind === 'dots' ? "<circle cx='3' cy='1' r='0.85' fill='" + RULE_COLOR + "'/>"
+    : "<rect x='0' y='0.5' width='" + (kind === 'dash' ? 6 : 4) + "' height='1' fill='" + RULE_COLOR + "' fill-opacity='" + (kind === 'line' ? '0.7' : '1') + "'/>";
+  const svg = "<svg xmlns='http://www.w3.org/2000/svg' width='" + tw + "' height='" + gap + "'>" + shape + '</svg>';
+  root.setProperty('--rule', gap + 'px');
+  root.setProperty('--rule-w', tw + 'px');
+  root.setProperty('--rule-img', 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")');
+  // خط السطر يقع تحت خط الكتابة مباشرة: نقيس موضع خط الكتابة بالخط الحالي
+  const probe = el('div', { class: page.className, dir: page.dir, lang: page.lang, style: 'position:absolute;visibility:hidden;left:0;top:0;width:10cm;min-height:0;zoom:1;font-family:var(--doc-font)' });
+  probe.innerHTML = '<p>\u0628\u0627<span style="display:inline-block;width:0;height:0"></span></p>';
+  document.body.append(probe);
+  const sp = probe.querySelector('span'), base = sp.offsetTop - probe.querySelector('p').offsetTop;
+  probe.remove();
+  const off = ((base + Math.max(2, gap * 0.08)) % gap + gap) % gap;
+  root.setProperty('--rule-off', off + 'px');
+  WQ._rule = { gap, off, kind };
+}
+
 
 /* كل فقرة تأخذ اتجاهها من أول حرف قوي فيها (عربي ← يمين، لاتيني ← يسار) */
 function normalizeBlocks() {
@@ -669,8 +710,48 @@ function insertQuotes() {
 }
 
 /* ---------- التنظيف: لصق من Word (غير موثوق) أو ملف ور\u0651اق (موثوق) ---------- */
+/* ---------- بناء جدول من نموذج شبكي (للاستيراد من Word) ----------
+   rows: [{ cells: [{ html, span, vm: 'restart'|'cont'|null, align, fill, head }], before }]
+   widths: عرض الأعمدة (أي وحدة) ← نسب مئوية في colgroup */
+function buildGridTable(rows, widths) {
+  const grid = []; // grid[r][c] = الخلية التي تغطي هذا الموضع
+  const out = rows.map(() => []);
+  rows.forEach((row, ri) => {
+    grid[ri] = grid[ri] || [];
+    let col = 0;
+    if (row.before) { out[ri].push({ html: '', span: row.before, blank: true, rs: 1 }); for (let k = 0; k < row.before; k++) grid[ri][col++] = null; }
+    row.cells.forEach((c) => {
+      const span = Math.max(1, c.span || 1);
+      if (c.vm === 'cont') {
+        const above = ri > 0 ? grid[ri - 1][col] : null;
+        if (above && !above.blank) { above.rs++; for (let k = 0; k < span; k++) grid[ri][col + k] = above; col += span; return; }
+      }
+      const o = Object.assign({}, c, { span, rs: 1 });
+      out[ri].push(o);
+      for (let k = 0; k < span; k++) grid[ri][col + k] = o;
+      col += span;
+    });
+  });
+  let ncol = 0; grid.forEach((r) => { ncol = Math.max(ncol, r.length); });
+  let h = '<table class="wq-grid' + (ncol >= 10 ? ' dense' : (ncol >= 7 ? ' compact' : '')) + '">';
+  if (widths && widths.length === ncol && ncol > 1) {
+    const tot = widths.reduce((a, b) => a + b, 0) || 1;
+    h += '<colgroup>' + widths.map((w) => '<col style="width:' + (Math.round(w / tot * 1000) / 10) + '%">').join('') + '</colgroup>';
+  }
+  h += '<tbody>';
+  out.forEach((cells) => {
+    h += '<tr>' + cells.map((c) => {
+      const tag = c.head ? 'th' : 'td';
+      let st = '';
+      if (c.align === 'center' || c.align === 'end' || c.align === 'justify') st += 'text-align: ' + c.align + ';';
+      if (c.fill && /^[0-9A-F]{6}$/i.test(c.fill) && !/^(FFFFFF|auto)$/i.test(c.fill)) st += 'background-color: #' + c.fill + ';';
+      return '<' + tag + ' dir="auto"' + (c.span > 1 ? ' colspan="' + c.span + '"' : '') + (c.rs > 1 ? ' rowspan="' + c.rs + '"' : '') + (st ? ' style="' + st + '"' : '') + '>' + (c.html || '<br>') + '</' + tag + '>';
+    }).join('') + '</tr>';
+  });
+  return h + '</tbody></table>';
+}
 const ALLOWED = { P: 'p', H1: 'h1', H2: 'h2', H3: 'h3', H4: 'h3', H5: 'h3', H6: 'h3', B: 'b', STRONG: 'b', I: 'i', EM: 'i', U: 'u', S: 's', STRIKE: 's',
-  UL: 'ul', OL: 'ol', LI: 'li', TABLE: 'table', THEAD: 'thead', TBODY: 'tbody', TR: 'tr', TD: 'td', TH: 'th', BR: 'br', BLOCKQUOTE: 'blockquote', SUP: 'sup', SUB: 'sub', IMG: 'img', HR: 'hr', SPAN: 'span', FONT: 'span' };
+  UL: 'ul', OL: 'ol', LI: 'li', TABLE: 'table', COLGROUP: 'colgroup', COL: 'col', THEAD: 'thead', TBODY: 'tbody', TR: 'tr', TD: 'td', TH: 'th', BR: 'br', BLOCKQUOTE: 'blockquote', SUP: 'sup', SUB: 'sub', IMG: 'img', HR: 'hr', SPAN: 'span', FONT: 'span' };
 const STYLE_OK = ['font-family', 'font-size', 'color', 'background-color', 'text-align', 'margin-right', 'margin-left', 'font-weight', 'font-style', 'text-decoration-line', 'text-decoration'];
 const ID_RE = /^[A-Za-z0-9_-]{1,40}$/;
 function cleanStyle(st) {
@@ -712,7 +793,9 @@ function sanitizeHtml(html, trusted = false) {
       if (tag === 'br') { out += '<br>'; return; }
       if (tag === 'hr') { out += cls.includes('wq-pagebreak') ? '<hr class="wq-pagebreak">' : '<hr>'; return; }
       if (tag === 'img') { const src = n.getAttribute('src') || ''; if (src.startsWith('data:image/')) out += '<img src="' + escapeHtml(src) + '" alt="">'; return; }
+      if (tag === 'col') { const w = (n.getAttribute('style') || '').match(/width:\s*([\d.]+)%/); out += '<col' + (w ? ' style="width:' + w[1] + '%"' : '') + '>'; return; }
       let attrs = '';
+      if (tag === 'table' && /\bwq-grid\b/.test(cls)) attrs += ' class="wq-grid' + (/\bdense\b/.test(cls) ? ' dense' : (/\bcompact\b/.test(cls) ? ' compact' : '')) + '"';
       if (tag === 'td' || tag === 'th') {
         ['colspan', 'rowspan'].forEach((a) => { const v = n.getAttribute(a); if (v && /^\d+$/.test(v)) attrs += ' ' + a + '="' + v + '"'; });
       }
@@ -1430,12 +1513,70 @@ function doc97Text(buf) {
   const pcdBase = p + (n + 1) * 4;
   const dec1252 = new TextDecoder('windows-1252'), dec16 = new TextDecoder('utf-16le');
   let text = '';
+  const cellFcs = []; // موضع كل علامة خلية/صف (\x07) في المتن داخل WordDocument
   for (let i = 0; i < n; i++) {
     const fcRaw = t.getUint32(pcdBase + i * 8 + 2, true), len = cps[i + 1] - cps[i];
-    if (fcRaw & 0x40000000) { const fc = (fcRaw & 0x3FFFFFFF) / 2; text += dec1252.decode(wd.subarray(fc, fc + len)); }
-    else text += dec16.decode(wd.subarray(fcRaw, fcRaw + len * 2));
+    const comp = !!(fcRaw & 0x40000000), fc0 = comp ? (fcRaw & 0x3FFFFFFF) / 2 : fcRaw;
+    const piece = comp ? dec1252.decode(wd.subarray(fc0, fc0 + len)) : dec16.decode(wd.subarray(fc0, fc0 + len * 2));
+    for (let k = 0; k < piece.length && cps[i] + k < ccpText; k++) if (piece.charCodeAt(k) === 7) cellFcs.push(fc0 + k * (comp ? 1 : 2));
+    text += piece;
   }
-  return { main: text.slice(0, ccpText), ftn: text.slice(ccpText, ccpText + Math.max(0, ccpFtn)) };
+  let taps = [];
+  try { taps = cellFcs.map(tapReader(wd, w, t, fcOff, cfb.stream('Data'))); } catch (e) { taps = []; }
+  return { main: text.slice(0, ccpText), ftn: text.slice(ccpText, ccpText + Math.max(0, ccpFtn)), taps };
+}
+
+/* خصائص صف الجدول (TAP) من خصائص فقرة نهاية الصف: حدود الخلايا والدمج.
+   يرجع null لعلامة نهاية خلية عادية، و{ centers, cells } لعلامة نهاية الصف */
+function tapReader(wd, w, t, fcOff, data) {
+  const dv = data && new DataView(data.buffer, data.byteOffset, data.byteLength);
+  // PlcBtePapx هو الزوج رقم 13 في FibRgFcLcb97
+  const fcBte = w.getUint32(fcOff + 13 * 8, true), lcbBte = w.getUint32(fcOff + 13 * 8 + 4, true);
+  const nb = (lcbBte - 4) / 8;
+  const aFc = [], aPn = [];
+  for (let i = 0; i <= nb; i++) aFc.push(t.getUint32(fcBte + i * 4, true));
+  for (let i = 0; i < nb; i++) aPn.push(t.getUint32(fcBte + (nb + 1) * 4 + i * 4, true) & 0x3FFFFF);
+  const sprmLen = (g, p, sprm) => {
+    switch (sprm >> 13) {
+      case 0: case 1: return 1; case 2: case 4: case 5: return 2; case 3: return 4; case 7: return 3;
+      default: return sprm === 0xD608 || sprm === 0xD606 ? g.getUint16(p, true) + 1 : g.getUint8(p) + 1;
+    }
+  };
+  return (fc) => {
+    let b = -1; for (let i = 0; i < nb; i++) if (fc >= aFc[i] && fc < aFc[i + 1]) { b = i; break; }
+    if (b < 0) return null;
+    const base = aPn[b] * 512, crun = wd[base + 511];
+    let j = -1;
+    for (let i = 0; i < crun; i++) { const a = w.getUint32(base + i * 4, true), z = w.getUint32(base + (i + 1) * 4, true); if (fc >= a && fc < z) { j = i; break; } }
+    if (j < 0) return null;
+    const bOff = wd[base + (crun + 1) * 4 + j * 13];
+    if (!bOff) return null;
+    let p = base + bOff * 2, len;
+    const cb = wd[p];
+    if (cb === 0) { len = wd[p + 1] * 2; p += 2; } else { len = cb * 2 - 1; p += 1; }
+    let tap = null;
+    const scan = (g, bytes, p, end) => {
+      while (p + 2 <= end) {
+        const sprm = g.getUint16(p, true); p += 2;
+        const L = sprmLen(g, p, sprm);
+        if (sprm === 0x6646 && dv) { const o = g.getUint32(p, true); if (o + 2 <= data.length) scan(dv, data, o + 2, o + 2 + dv.getUint16(o, true)); } // sprmPHugePapx: الخصائص في Data
+        if (sprm === 0xD608) {
+          const q = p + 2, itc = bytes[q];
+          const centers = []; for (let k = 0; k <= itc; k++) centers.push(g.getInt16(q + 1 + k * 2, true));
+          const tcBase = q + 1 + (itc + 1) * 2, room = p + L - tcBase;
+          const cells = [];
+          for (let k = 0; k < itc; k++) {
+            const f = (k + 1) * 20 <= room ? g.getUint16(tcBase + k * 20, true) : 0;
+            cells.push({ hm: f & 3, vm: (f >> 5) & 3 });
+          }
+          tap = { centers, cells };
+        }
+        p += L;
+      }
+    };
+    scan(w, wd, p + 2, p + len); // بعد istd
+    return tap;
+  };
 }
 
 /* النص ← فقرات ورّاق */
@@ -1451,8 +1592,35 @@ function cleanFields(s) {
   }
   return out;
 }
+/* خلايا جدول Word القديم + خصائص الصفوف ← جدول ورّاق بالدمج وعرض الأعمدة */
+function doc97Grid(cells, cellTaps, fmt) {
+  const rows = []; let cur = [];
+  cells.forEach((c, k) => {
+    if (cellTaps[k]) { rows.push({ texts: cur, tap: cellTaps[k] }); cur = []; } else cur.push(c);
+  });
+  if (cur.length) rows.push({ texts: cur, tap: null });
+  // حدود الأعمدة = اتحاد حدود خلايا كل الصفوف
+  const bounds = [];
+  rows.forEach((r) => r.tap && r.tap.centers.forEach((x) => { if (!bounds.some((b) => Math.abs(b - x) <= 15)) bounds.push(x); }));
+  bounds.sort((a, b) => a - b);
+  const at = (x) => { let best = 0; bounds.forEach((b, i) => { if (Math.abs(b - x) < Math.abs(bounds[best] - x)) best = i; }); return best; };
+  const model = rows.filter((r) => r.texts.length).map((r) => {
+    const tp = r.tap, ok = tp && tp.cells.length === r.texts.length && tp.centers.length === r.texts.length + 1;
+    const row = { cells: [], before: ok ? at(tp.centers[0]) : 0 };
+    r.texts.forEach((txt, k) => {
+      const info = ok ? tp.cells[k] : { hm: 0, vm: 0 };
+      const span = ok ? Math.max(1, at(tp.centers[k + 1]) - at(tp.centers[k])) : 1;
+      const html = fmt(txt);
+      if ((info.hm & 2) && !(info.hm & 1) && row.cells.length) { const prev = row.cells[row.cells.length - 1]; prev.span += span; if (html) prev.html += (prev.html ? '<br>' : '') + html; return; }
+      row.cells.push({ html, span, vm: (info.vm & 1) ? ((info.vm & 2) ? 'restart' : 'cont') : null });
+    });
+    return row;
+  });
+  const widths = bounds.length > 2 ? bounds.slice(1).map((b, i) => b - bounds[i]) : null;
+  return buildGridTable(model, widths);
+}
 function doc97ToWarraq(buf) {
-  const { main, ftn } = doc97Text(buf);
+  const { main, ftn, taps } = doc97Text(buf);
   // نصوص الحواشي: كل حاشية تبدأ بالعلامة \x02
   const fnTexts = cleanFields(ftn).split('\x02').slice(1).map((x) => x.replace(/[\r\x07\x0B\x0C\x01\x08]+/g, ' ').trim());
   const footnotes = {};
@@ -1471,7 +1639,8 @@ function doc97ToWarraq(buf) {
   const body = cleanFields(main).replace(/\x0C/g, '\r\x0C\r');
   // نقسم النص لمقاطع تنتهي بـ \r (فقرة) أو \x07 (خلية جدول)
   const segs = []; let cur = '';
-  for (const ch of body) { if (ch === '\r' || ch === '\x07') { segs.push({ t: cur, end: ch }); cur = ''; } else cur += ch; }
+  let mi = 0; // ترتيب علامة \x07 ← خصائص الصف (TAP) المقابلة
+  for (const ch of body) { if (ch === '\r' || ch === '\x07') { segs.push({ t: cur, end: ch, tap: ch === '\x07' ? taps[mi++] || null : null }); cur = ''; } else cur += ch; }
   if (cur) segs.push({ t: cur, end: '\r' });
   const items = [];
   for (let i = 0; i < segs.length; i++) {
@@ -1479,20 +1648,21 @@ function doc97ToWarraq(buf) {
     if (sg.t === '\x0C') { items.push({ kind: 'break' }); continue; }
     if (sg.end === '\r' && !(segs[i + 1] && segs[i + 1].end === '\x07')) { items.push({ kind: 'p', raw: sg.t }); continue; }
     // منطقة جدول: خلايا (والفقرات داخل الخلية تُدمج معها)
-    const cells = []; let acc = [];
+    const cells = [], cellTaps = []; let acc = [];
     while (i < segs.length) {
       const x = segs[i];
       if (x.end === '\x07') {
         acc.push(x.t);
         // أول خلية: الفقرات اللي قبلها غالباً عنوان فوق الجدول، مش جزء من الخلية
         if (!cells.length && acc.length > 1) { acc.slice(0, -1).forEach((t0) => items.push({ kind: 'p', raw: t0 })); acc = acc.slice(-1); }
-        cells.push(acc.join('\n')); acc = []; i++; continue;
+        cells.push(acc.join('\n')); cellTaps.push(x.tap); acc = []; i++; continue;
       }
       if (segs[i + 1] && segs[i + 1].end === '\x07') { acc.push(x.t); i++; continue; }
       break;
     }
     i--;
-    // عدد الأعمدة من الصف الأول (حتى أول علامة نهاية صف = خلية فارغة)
+    if (cellTaps.some(Boolean)) { items.push({ kind: 'tbl', cells, cellTaps }); continue; }
+    // ملف بدون خصائص صفوف مقروءة: عدد الأعمدة من الصف الأول (حتى أول علامة نهاية صف = خلية فارغة)
     const firstEnd = cells.indexOf('');
     const ncol = firstEnd > 0 ? firstEnd : cells.length;
     const rows = [];
@@ -1507,6 +1677,7 @@ function doc97ToWarraq(buf) {
   let html = '', lastEmpty = true, detected = 0;
   items.forEach((it) => {
     if (it.kind === 'break') { if (!lastEmpty) { html += '<hr class="wq-pagebreak">'; lastEmpty = true; } return; }
+    if (it.kind === 'tbl' && it.cellTaps) { html += doc97Grid(it.cells, it.cellTaps, (c) => c.split('\n').map(inline).filter(Boolean).join('<br>')); lastEmpty = false; return; }
     if (it.kind === 'tbl') {
       html += '<table><tbody>' + it.rows.map((r, ri) => '<tr>' + r.map((c) => '<td dir="auto">' + (c.split('\n').map(inline).filter(Boolean).join('<br>') || '<br>') + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
       lastEmpty = false; return;
@@ -1846,18 +2017,28 @@ async function docxToWarraq(buf) {
     return { kind: 'p', inner, plain, info, center: jc === 'center', justify: jc === 'both' || jc === 'distribute' };
   };
   const tableHtml = async (c) => {
-    let t = '<table><tbody>';
+    const wattr = (e, a) => e && (e.getAttributeNS(W_NS, a) || e.getAttribute('w:' + a));
+    const grid = kid(c, 'tblGrid');
+    const widths = grid ? kids(grid, 'gridCol').map((g) => +wattr(g, 'w') || 0) : [];
+    const rows = [];
     for (const tr of kids(c, 'tr')) {
-      t += '<tr>';
+      const trPr = kid(tr, 'trPr');
+      const row = { cells: [], before: trPr ? +wval(kid(trPr, 'gridBefore')) || 0 : 0 };
+      const head = !!(trPr && kid(trPr, 'tblHeader') && isOn(kid(trPr, 'tblHeader')));
       for (const tc of kids(tr, 'tc')) {
-        const span = tc.getElementsByTagNameNS(W_NS, 'gridSpan')[0];
-        const cs = span ? ' colspan="' + (+wval(span) || 1) + '"' : '';
-        const parts = (await flatten(tc)).filter((x) => x.inner).map((x) => x.inner);
-        t += '<td dir="auto"' + cs + '>' + (parts.join('<br>') || '<br>') + '</td>';
+        const pr = kid(tc, 'tcPr');
+        const vmEl = pr && kid(pr, 'vMerge');
+        const vm = vmEl ? (wval(vmEl) === 'restart' ? 'restart' : 'cont') : null;
+        const shd = pr && kid(pr, 'shd');
+        const items = await flatten(tc);
+        const parts = items.map((x) => x.kind === 'tbl' ? x.html : x.inner).filter(Boolean);
+        const firstP = items.find((x) => x.kind === 'p');
+        row.cells.push({ html: parts.join('<br>'), span: pr ? +wval(kid(pr, 'gridSpan')) || 1 : 1, vm, head,
+          align: firstP && firstP.center ? 'center' : '', fill: shd ? wattr(shd, 'fill') : '' });
       }
-      t += '</tr>';
+      rows.push(row);
     }
-    return t + '</tbody></table>';
+    return buildGridTable(rows, widths.every((w) => w > 0) ? widths : null);
   };
   async function flatten(container) {
     const out = [];
@@ -1978,8 +2159,8 @@ function makePage(g, n) {
   const s = WQ.doc.settings;
   const pg = el('div', { class: 'pv-page' + (s.pageSize === 'letter' ? ' letter' : ''), 'data-n': String(n) });
   pg.style.width = g.W + 'px'; pg.style.height = g.H + 'px'; pg.style.padding = g.mt + 'px ' + g.ms + 'px';
-  const box = el('div', { class: 'pv-box' }); box.style.height = g.ch + 'px';
-  const body = el('div', { class: 'page pv-body ' + Array.from(page.classList).filter((c) => /^(ls-|num-ar)/.test(c)).join(' '), dir: page.dir, lang: page.lang });
+  const box = el('div', { class: 'pv-box' + (isRuled() ? ' ruled' : '') }); box.style.height = g.ch + 'px';
+  const body = el('div', { class: 'page pv-body ' + Array.from(page.classList).filter((c) => /^(ls-|num-ar|ruled$)/.test(c)).join(' '), dir: page.dir, lang: page.lang });
   const fns = el('div', { class: 'pv-fns fn-zone', dir: page.dir, lang: page.lang });
   const num = el('div', { class: 'pv-num' }); num.style.bottom = (g.mt / 2 - 8) + 'px';
   box.append(body, fns); pg.append(box, num);
@@ -2030,11 +2211,18 @@ function splitByChildren(block, P, g, fnStart) {
   const container = isTable ? (block.tBodies[0] || block) : block;
   const items = Array.from(container.children);
   if (items.length < 2) return null;
-  const headerRow = isTable && items[0].querySelector('th') ? items[0] : null;
+  // صفوف العنوان: الصفوف الأولى التي كل خلاياها عناوين (تتكرر في الصفحة التالية)
+  let nHead = 0;
+  if (isTable) while (nHead < items.length - 1 && items[nHead].cells.length && Array.from(items[nHead].cells).every((c) => c.tagName === 'TH')) nHead++;
+  // لا نقسم الجدول داخل خلية مدمجة رأسياً
+  const blocked = new Set();
+  if (isTable) items.forEach((tr, i) => Array.from(tr.cells || []).forEach((c) => { for (let k = 1; k < (c.rowSpan || 1); k++) blocked.add(i + k); }));
+  const cols = isTable ? block.querySelector(':scope > colgroup') : null;
   const make = (from, to, withHeader) => {
     const b = block.cloneNode(false);
+    if (cols) b.append(cols.cloneNode(true));
     const c = isTable ? el('tbody') : b; if (isTable) b.append(c);
-    if (withHeader && headerRow) c.append(headerRow.cloneNode(true));
+    if (withHeader) items.slice(0, nHead).forEach((x) => c.append(x.cloneNode(true)));
     items.slice(from, to).forEach((x) => c.append(x.cloneNode(true)));
     if (block.tagName === 'OL') b.setAttribute('start', String((+block.getAttribute('start') || 1) + from));
     return b;
@@ -2043,10 +2231,10 @@ function splitByChildren(block, P, g, fnStart) {
   for (let k = 1; k < items.length; k++) {
     const h = make(0, k, false); P.body.append(h); fillFootnotes(P, fnStart);
     const ok = fits(P, g); h.remove();
-    if (!ok) break; best = k;
+    if (!ok) break; if (!blocked.has(k)) best = k;
   }
   fillFootnotes(P, fnStart);
-  if (best === 0 || (headerRow && best === 1)) return null;
+  if (best === 0 || best <= nHead) return null;
   const tail = make(best, items.length, true);
   if (block.tagName === 'OL') tail.setAttribute('start', String((+block.getAttribute('start') || 1) + best));
   return [make(0, best, false), tail];
@@ -2057,6 +2245,7 @@ function paginate() {
   if (!WQ.doc) return 0;
   renderCitations();
   const g = pageGeom();
+  updateRuling();
   const host = $('#pagesView');
   host.innerHTML = '';
   const wasMode = document.body.classList.contains('pages-mode');
@@ -2207,6 +2396,17 @@ function drawPage(pv, scale) {
     const y = Y(r.top) + 4;
     ctx.strokeStyle = '#999'; ctx.lineWidth = 1; ctx.beginPath();
     ctx.moveTo(rtl ? X(r.right) - w : X(r.left), y); ctx.lineTo(rtl ? X(r.right) : X(r.left) + w, y); ctx.stroke();
+  });
+  // سطور الكراسة
+  if (WQ._rule) $$('.pv-box.ruled', pv).forEach((bx) => {
+    const r = bx.getBoundingClientRect(), f = bx.querySelector('.pv-fns');
+    const limit = f && f.childElementCount ? f.getBoundingClientRect().top : r.bottom;
+    const R = WQ._rule;
+    ctx.strokeStyle = RULE_COLOR; ctx.lineWidth = R.kind === 'dots' ? 1.6 : 1; ctx.lineCap = R.kind === 'dots' ? 'round' : 'butt';
+    ctx.globalAlpha = R.kind === 'line' ? 0.7 : 1;
+    ctx.setLineDash(R.kind === 'dots' ? [0.01, 6] : (R.kind === 'dash' ? [6, 4] : []));
+    for (let y = r.top + R.off + 1; y < limit - 1; y += R.gap) { ctx.beginPath(); ctx.moveTo(X(r.left) + 1, Y(y)); ctx.lineTo(X(r.right), Y(y)); ctx.stroke(); }
+    ctx.setLineDash([]); ctx.globalAlpha = 1; ctx.lineCap = 'butt';
   });
   // 2) الصور
   $$('img', pv).forEach((im) => { const r = im.getBoundingClientRect(); try { ctx.drawImage(im, X(r.left), Y(r.top), r.width, r.height); } catch (e) {} });
@@ -2393,6 +2593,7 @@ async function doPrint() {
 }
 
 /* ===== docx: تصدير ملف Word حقيقي (عناوين، تنسيق، اتجاه، قوائم، جداول، صور، حواشي Word أصلية، إعداد الصفحة) ===== */
+function cssHex(c) { const m = String(c).match(/\d+/g); return m && m.length >= 3 ? m.slice(0, 3).map((v) => (+v).toString(16).padStart(2, '0')).join('').toUpperCase() : ''; }
 const X = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
 const RTL_CH = /[\u0590-\u05FF\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/;
 const LTR_CH = /[A-Za-z\u00C0-\u024F]/;
@@ -2520,21 +2721,46 @@ function docxBuilder() {
       return Array.from(e.children).filter((li) => li.tagName === 'LI').map((li) => para(li, '<w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="' + id + '"/></w:numPr>')).join('');
     }
     if (tag === 'TABLE') {
-      const rows = Array.from(e.querySelectorAll('tr'));
-      const ncol = Math.max(1, ...rows.map((r) => Array.from(r.children).reduce((a, c) => a + (+c.getAttribute('colspan') || 1), 0)));
+      const rows = Array.from(e.rows);
+      // شبكة الإشغال: الخلايا المدمجة رأسياً تظهر في Word كخلايا vMerge متتالية
+      const occ = rows.map(() => []); let ncol = 1;
+      rows.forEach((r, ri) => {
+        let col = 0;
+        Array.from(r.cells).forEach((c) => {
+          while (occ[ri][col]) col++;
+          const cs = c.colSpan || 1, rs = Math.min(c.rowSpan || 1, rows.length - ri);
+          for (let a = 0; a < rs; a++) for (let b = 0; b < cs; b++) occ[ri + a][col + b] = { c, first: a === 0, lead: b === 0, cs };
+          col += cs; ncol = Math.max(ncol, col);
+        });
+      });
+      const pct = Array.from(e.querySelectorAll(':scope > colgroup > col')).map((c) => parseFloat(c.style.width) || 0);
+      const colW = pct.length === ncol && pct.every((v) => v > 0) ? pct.map((v) => Math.floor(cw * v / 100)) : Array(ncol).fill(Math.floor(cw / ncol));
+      // حجم خط الجدول مثل ورّاق: الجداول العريضة بخط أصغر حتى لا تتكسر الكلمات
+      const tsz = e.classList.contains('dense') ? 19 : (e.classList.contains('compact') ? 24 : 27);
       const rtl = isRtl(e);
       let x = '<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/>' + (rtl ? '<w:bidiVisual/>' : '') + '<w:tblW w:w="5000" w:type="pct"/>' +
-        '<w:tblBorders>' + ['top', 'left', 'bottom', 'right', 'insideH', 'insideV'].map((b) => '<w:' + b + ' w:val="single" w:sz="4" w:space="0" w:color="999999"/>').join('') + '</w:tblBorders></w:tblPr><w:tblGrid>';
-      for (let i = 0; i < ncol; i++) x += '<w:gridCol w:w="' + Math.floor(cw / ncol) + '"/>';
+        '<w:tblBorders>' + ['top', 'left', 'bottom', 'right', 'insideH', 'insideV'].map((b) => '<w:' + b + ' w:val="single" w:sz="4" w:space="0" w:color="999999"/>').join('') + '</w:tblBorders><w:tblCellMar><w:left w:w="45" w:type="dxa"/><w:right w:w="45" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>';
+      colW.forEach((w) => { x += '<w:gridCol w:w="' + w + '"/>'; });
       x += '</w:tblGrid>';
-      rows.forEach((r) => {
-        x += '<w:tr>';
-        Array.from(r.children).forEach((c) => {
-          const span = +c.getAttribute('colspan') || 1;
-          x += '<w:tc><w:tcPr><w:tcW w:w="' + Math.floor(cw / ncol * span) + '" w:type="dxa"/>' + (span > 1 ? '<w:gridSpan w:val="' + span + '"/>' : '') + (c.tagName === 'TH' ? '<w:shd w:val="clear" w:color="auto" w:fill="F4EFE6"/>' : '') + '</w:tcPr>';
-          x += para(c, '', c.tagName === 'TH' ? { b: true } : null).replace('<w:jc w:val="both"/>', '');
+      rows.forEach((r, ri) => {
+        const head = Array.from(r.cells).length && Array.from(r.cells).every((c) => c.tagName === 'TH');
+        x += '<w:tr>' + (head && ri < 3 ? '<w:trPr><w:tblHeader/></w:trPr>' : '');
+        for (let col = 0; col < ncol; col++) {
+          const o = occ[ri][col];
+          if (!o) { x += '<w:tc><w:tcPr><w:tcW w:w="' + colW[col] + '" w:type="dxa"/></w:tcPr><w:p/></w:tc>'; continue; }
+          if (!o.lead) continue;
+          const c = o.c, w = colW.slice(col, col + o.cs).reduce((a, b) => a + b, 0);
+          const vm = (c.rowSpan || 1) > 1 ? (o.first ? '<w:vMerge w:val="restart"/>' : '<w:vMerge/>') : '';
+          const bg = c.style.backgroundColor ? cssHex(c.style.backgroundColor) : (c.tagName === 'TH' ? 'F4EFE6' : '');
+          x += '<w:tc><w:tcPr><w:tcW w:w="' + w + '" w:type="dxa"/>' + (o.cs > 1 ? '<w:gridSpan w:val="' + o.cs + '"/>' : '') + vm +
+            (bg ? '<w:shd w:val="clear" w:color="auto" w:fill="' + bg + '"/>' : '') + '<w:vAlign w:val="center"/></w:tcPr>';
+          if (o.first) {
+            let pp = para(c, '', Object.assign({ sz: tsz }, c.tagName === 'TH' ? { b: true } : {})).replace('<w:jc w:val="both"/>', '');
+            if (c.style.textAlign === 'center' && !/<w:jc /.test(pp)) pp = pp.replace(/<w:pPr>/g, '<w:pPr><w:jc w:val="center"/>');
+            x += pp || '<w:p/>';
+          } else x += '<w:p/>';
           x += '</w:tc>';
-        });
+        }
         x += '</w:tr>';
       });
       return x + '</w:tbl><w:p/>';
@@ -3156,7 +3382,11 @@ function renderRibbon() {
         el('span', { class: 'rlabel', html: escapeHtml(t('margins')) }),
         rsel(t('margins'), [['normal', t('mNormal')], ['narrow', t('mNarrow')], ['wide', t('mWide')]], s.margins, (v) => setSetting('margins', v)),
         el('span', { class: 'rlabel', html: escapeHtml(t('lineSpacing')) }),
-        rsel(t('lineSpacing'), [['1', '1.0'], ['115', '1.15'], ['15', '1.5'], ['2', '2.0']], s.lineSpacing, (v) => setSetting('lineSpacing', v)));
+        ...(isRuled() ? [] : [rsel(t('lineSpacing'), [['1', '1.0'], ['115', '1.15'], ['15', '1.5'], ['2', '2.0']], s.lineSpacing, (v) => setSetting('lineSpacing', v))]), sep(),
+        el('span', { class: 'rlabel', html: escapeHtml(t('ruling')) }),
+        rsel(t('ruling'), [['off', t('ruleOff')], ['dots', t('ruleDots')], ['dash', t('ruleDash')], ['line', t('ruleLine')]], s.ruled || 'off', (v) => { setSetting('ruled', v); renderRibbon(); }),
+        ...(isRuled() ? [el('span', { class: 'rlabel', html: escapeHtml(t('ruleGap')) }),
+          rsel(t('ruleGap'), ['0.7', '0.8', '0.9', '1', '1.1', '1.2', '1.5'].map((g) => [g, (WQ.ui === 'ar' ? toArabicDigits(g).replace('.', '\u066B') : g) + ' ' + t('cm')]), String(s.ruleGap || '1'), (v) => setSetting('ruleGap', v))] : []));
       break;
     case 'view':
       add(el('span', { class: 'rlabel', html: escapeHtml(t('zoom')) }),
