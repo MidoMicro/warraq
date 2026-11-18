@@ -89,6 +89,31 @@ body.hide-nav.hide-ref .workspace{grid-template-columns:minmax(0,1fr)}
 .page td,.page th{border:1px solid #999;padding:3px 5px;vertical-align:middle;text-align:start;overflow-wrap:break-word;word-break:normal}
 .page th{background:#F4EFE6;font-weight:700}
 .page img{max-width:100%;height:auto}
+/* حدود الجدول: في وضع الكتابة الحدود المخفية تظهر متقطعة باهتة (مثل View Gridlines) ولا تُطبع */
+.page table[class*="bd-"] td,.page table[class*="bd-"] th{border:none}
+#page table[class*="bd-"] td,#page table[class*="bd-"] th{border:1px dashed #DADADA}
+#page table.bd-outside,.page.pv-body table.bd-outside{border:1.5px solid #555}
+#page table.bd-inside td,#page table.bd-inside th,.page.pv-body table.bd-inside td,.page.pv-body table.bd-inside th{border:1px solid #999}
+#page table.bd-inside tr:first-child>*,.page.pv-body table.bd-inside tr:first-child>*{border-top:none}
+#page table.bd-inside tr:last-child>*,.page.pv-body table.bd-inside tr:last-child>*{border-bottom:none}
+#page table.bd-inside tr>:first-child,.page.pv-body table.bd-inside tr>:first-child{border-inline-start:none}
+#page table.bd-inside tr>:last-child,.page.pv-body table.bd-inside tr>:last-child{border-inline-end:none}
+#page table.bd-h td,#page table.bd-h th,.page.pv-body table.bd-h td,.page.pv-body table.bd-h th{border-top:1px solid #999;border-bottom:1px solid #999}
+#page table.bd-apa,.page.pv-body table.bd-apa{border-top:1.5px solid #222;border-bottom:1.5px solid #222}
+#page table.bd-apa th,#page table.bd-apa tr:first-child>*,.page.pv-body table.bd-apa th,.page.pv-body table.bd-apa tr:first-child>*{border-bottom:1px solid #222}
+.page table.bd-apa th{background:none}
+/* قائمة الزر الأيمن */
+.ctx-menu{position:fixed;z-index:60;background:var(--paper);border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 20px #0003;padding:4px;min-width:170px}
+.ctx-item{display:block;width:100%;text-align:start;background:none;border:none;padding:6px 10px;border-radius:6px;color:var(--ink);font-family:inherit;font-size:13px;cursor:pointer}
+.ctx-item:hover{background:#E6EFEE}
+.ctx-sep{height:1px;background:var(--line);margin:4px 2px}
+/* إطار الصفحة */
+.pv-frame{position:absolute;pointer-events:none;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pv-frame.f-single{border:1.5px solid currentColor}
+.pv-frame.f-double{border:4.5px double currentColor}
+.pv-frame.f-thick{border:3.5px solid currentColor}
+.pv-frame.f-thickThin{border:3.5px solid currentColor}
+.pv-frame-in{position:absolute;inset:3px;border:1px solid currentColor}
 /* تسطير الصفحة: كل سطر كتابة على خط */
 .page.ruled{line-height:var(--rule)!important;background-image:var(--rule-img);background-size:var(--rule-w) var(--rule);background-position:0 var(--rule-off);min-height:24.7cm}
 .page.ruled p,.page.ruled li,.page.ruled ul,.page.ruled ol,.page.ruled h2,.page.ruled h3{margin-top:0;margin-bottom:0}
@@ -305,7 +330,7 @@ const I18N = {
     table: 'جدول', image: 'صورة', pageBreak: 'فاصل صفحة', hr: 'خط فاصل', quotes: '« »', specialChar: 'رمز',
     pageBreakLabel: 'صفحة جديدة',
     pageSize: 'حجم الورقة', margins: 'الهوامش', mNormal: 'عادية', mNarrow: 'ضيقة', mWide: 'عريضة',
-    lineSpacing: 'تباعد الأسطر', ruling: 'تسطير الصفحة', ruleOff: 'بدون', ruleDots: 'منقّط', ruleDash: 'متقطّع', ruleLine: 'متصل', ruleGap: 'المسافة بين السطور', cm: 'سم', docLang: 'لغة المستند',
+    lineSpacing: 'تباعد الأسطر', tabTable: 'جدول', rowAbove: 'صف فوق', rowBelow: 'صف تحت', colRight: 'عمود يمين', colLeft: 'عمود شمال', delRow: 'حذف الصف', delCol: 'حذف العمود', delTable: 'حذف الجدول', tblBorders: 'حدود الجدول', bdAll: 'كل الحدود', bdOutside: 'الحدود الخارجية', bdInside: 'الحدود الداخلية', bdH: 'خطوط أفقية فقط', bdApa: 'أكاديمي (APA)', bdNone: 'بدون حدود', tblNoCell: 'ضع المؤشر داخل خلية في الجدول أولاً', tblHint: 'أو اضغط بالزر الأيمن على أي خلية', pageBorder: 'إطار الصفحة', pbNone: 'بدون', pbSingle: 'خط', pbDouble: 'خطان', pbThick: 'عريض', pbThickThin: 'عريض ورفيع', pbColor: 'لون الإطار', cTeal: 'فيروزي', cBlack: 'أسود', cCopper: 'نحاسي', pbHint: 'يظهر في عرض الصفحات والطباعة وPDF وWord', ruling: 'تسطير الصفحة', ruleOff: 'بدون', ruleDots: 'منقّط', ruleDash: 'متقطّع', ruleLine: 'متصل', ruleGap: 'المسافة بين السطور', cm: 'سم', docLang: 'لغة المستند',
     langAr: 'العربية', langEn: 'الإنجليزية', langFr: 'الفرنسية',
     zoom: 'تكبير', showMap: 'خريطة الرسالة', showRefs: 'لوحة المراجع', focus: 'وضع التركيز', exitFocus: 'خروج من وضع التركيز',
     dailyGoal: 'هدف اليوم', words: 'كلمة', chars: 'حرف', pagesApprox: 'صفحة تقريبا\u064B',
@@ -386,7 +411,7 @@ const I18N = {
     table: 'Table', image: 'Image', pageBreak: 'Page break', hr: 'Divider', quotes: '« »', specialChar: 'Symbol',
     pageBreakLabel: 'New page',
     pageSize: 'Page size', margins: 'Margins', mNormal: 'Normal', mNarrow: 'Narrow', mWide: 'Wide',
-    lineSpacing: 'Line spacing', ruling: 'Ruled page', ruleOff: 'None', ruleDots: 'Dotted', ruleDash: 'Dashed', ruleLine: 'Solid', ruleGap: 'Line gap', cm: 'cm', docLang: 'Document language',
+    lineSpacing: 'Line spacing', tabTable: 'Table', rowAbove: 'Row above', rowBelow: 'Row below', colRight: 'Column right', colLeft: 'Column left', delRow: 'Delete row', delCol: 'Delete column', delTable: 'Delete table', tblBorders: 'Table borders', bdAll: 'All borders', bdOutside: 'Outside borders', bdInside: 'Inside borders', bdH: 'Horizontal lines only', bdApa: 'Academic (APA)', bdNone: 'No borders', tblNoCell: 'Put the cursor inside a table cell first', tblHint: 'or right-click any cell', pageBorder: 'Page border', pbNone: 'None', pbSingle: 'Single', pbDouble: 'Double', pbThick: 'Thick', pbThickThin: 'Thick & thin', pbColor: 'Border color', cTeal: 'Teal', cBlack: 'Black', cCopper: 'Copper', pbHint: 'Shown in pages view, print, PDF and Word', ruling: 'Ruled page', ruleOff: 'None', ruleDots: 'Dotted', ruleDash: 'Dashed', ruleLine: 'Solid', ruleGap: 'Line gap', cm: 'cm', docLang: 'Document language',
     langAr: 'Arabic', langEn: 'English', langFr: 'French',
     zoom: 'Zoom', showMap: 'Document map', showRefs: 'References panel', focus: 'Focus mode', exitFocus: 'Exit focus mode',
     dailyGoal: "Today's goal", words: 'words', chars: 'characters', pagesApprox: 'pages approx.',
@@ -448,7 +473,7 @@ const I18N = {
 };
 
 /* ===== core: الثوابت والحالة والأدوات العامة ===== */
-const APP_VERSION = '0.6.2';
+const APP_VERSION = '0.6.3';
 const APP_STAGE = '6';
 const APP_UPDATED = '2026-11-18';
 const FILE_FORMAT = 'warraq';
@@ -795,7 +820,10 @@ function sanitizeHtml(html, trusted = false) {
       if (tag === 'img') { const src = n.getAttribute('src') || ''; if (src.startsWith('data:image/')) out += '<img src="' + escapeHtml(src) + '" alt="">'; return; }
       if (tag === 'col') { const w = (n.getAttribute('style') || '').match(/width:\s*([\d.]+)%/); out += '<col' + (w ? ' style="width:' + w[1] + '%"' : '') + '>'; return; }
       let attrs = '';
-      if (tag === 'table' && /\bwq-grid\b/.test(cls)) attrs += ' class="wq-grid' + (/\bdense\b/.test(cls) ? ' dense' : (/\bcompact\b/.test(cls) ? ' compact' : '')) + '"';
+      if (tag === 'table') {
+        const tc = (cls.match(/\b(wq-grid|dense|compact|bd-(?:outside|inside|h|apa|none))\b/g) || []);
+        if (tc.length) attrs += ' class="' + tc.join(' ') + '"';
+      }
       if (tag === 'td' || tag === 'th') {
         ['colspan', 'rowspan'].forEach((a) => { const v = n.getAttribute(a); if (v && /^\d+$/.test(v)) attrs += ' ' + a + '="' + v + '"'; });
       }
@@ -2145,6 +2173,190 @@ function openAbout() {
     onOpen: (m) => { $('#aboutCredits', m).innerHTML = (typeof quranCredits === 'function' ? quranCredits() : '') + '<p class="wq-note">' + E(t('pptCredit')) + '</p>'; } });
 }
 
+/* ===== tables: تعديل الجداول (إضافة وحذف الصفوف والأعمدة، حدود الجدول) + إطار الصفحة ===== */
+
+/* الخلية التي فيها المؤشر */
+function curCell() {
+  const sel = document.getSelection();
+  let n = sel && sel.rangeCount ? sel.anchorNode : null;
+  if ((!n || !page.contains(n)) && typeof lastRange !== 'undefined' && lastRange) n = lastRange.startContainer;
+  if (!n || !page.contains(n)) return null;
+  const e = n.nodeType === 1 ? n : n.parentElement;
+  return e && e.closest('td,th');
+}
+/* خريطة الجدول: أي خلية تغطي كل موضع (صف، عمود) مع حساب الدمج */
+function tableMap(t) {
+  const rows = Array.from(t.rows), map = rows.map(() => []), info = new Map();
+  rows.forEach((tr, r) => {
+    let c = 0;
+    Array.from(tr.cells).forEach((cell) => {
+      while (map[r][c]) c++;
+      const cs = cell.colSpan || 1, rs = Math.max(1, Math.min(cell.rowSpan || 1, rows.length - r));
+      info.set(cell, { r, c, cs, rs });
+      for (let a = 0; a < rs; a++) for (let b = 0; b < cs; b++) map[r + a][c + b] = cell;
+      c += cs;
+    });
+  });
+  let ncol = 0; map.forEach((x) => { ncol = Math.max(ncol, x.length); });
+  return { rows, map, info, ncol };
+}
+function newCell(tag, ref) {
+  const x = document.createElement(tag); x.setAttribute('dir', 'auto'); x.innerHTML = '<br>';
+  if (ref && ref.style.textAlign) x.style.textAlign = ref.style.textAlign;
+  return x;
+}
+function setSpan(cell, attr, v) { if (v > 1) cell.setAttribute(attr, String(v)); else cell.removeAttribute(attr); }
+/* يضع خلية في الصف r قبل أول خلية تبدأ بعد العمود c */
+function placeCell(M, r, c, cell) {
+  const tr = M.rows[r];
+  const next = Array.from(tr.cells).find((x) => x !== cell && M.info.get(x) && M.info.get(x).c > c);
+  tr.insertBefore(cell, next || null);
+}
+function tableIsRtl(t) { return getComputedStyle(t).direction === 'rtl'; }
+function afterTableEdit(focusCell) {
+  if (focusCell && focusCell.isConnected) {
+    const r = document.createRange(); r.selectNodeContents(focusCell); r.collapse(true);
+    const s = document.getSelection(); s.removeAllRanges(); s.addRange(r);
+  }
+  onInput(); updateToolbarState();
+}
+
+function tableOp(op) {
+  if (document.body.classList.contains('pages-mode')) setPagesView(false);
+  const cell = curCell();
+  if (!cell) { toast(t('tblNoCell')); return; }
+  const t = cell.closest('table');
+  if (op === 'delTable') { const nx = t.nextElementSibling; t.remove(); if (!page.children.length) page.innerHTML = '<p dir="auto"><br></p>'; afterTableEdit(nx && nx.tagName === 'P' ? nx : null); return; }
+  const M = tableMap(t), me = M.info.get(cell);
+  const cols = t.querySelector(':scope > colgroup');
+  // يمين ويسار حسب اتجاه الجدول
+  if (op === 'colRight') op = tableIsRtl(t) ? 'colBefore' : 'colAfter';
+  if (op === 'colLeft') op = tableIsRtl(t) ? 'colAfter' : 'colBefore';
+
+  if (op === 'rowAbove' || op === 'rowBelow') {
+    const R = op === 'rowAbove' ? me.r : me.r + me.rs; // رقم الصف الجديد
+    const tr = document.createElement('tr');
+    const host = (M.rows[R] || M.rows[M.rows.length - 1]).parentNode;
+    host.insertBefore(tr, M.rows[R] || null);
+    const seen = new Set(); let first = null;
+    for (let c = 0; c < M.ncol; c++) {
+      const up = R > 0 ? M.map[R - 1][c] : null, down = R < M.rows.length ? M.map[R][c] : null;
+      if (up && up === down) { if (!seen.has(up)) { seen.add(up); setSpan(up, 'rowspan', M.info.get(up).rs + 1); } continue; }
+      const tag = up && down && up.tagName === 'TH' && down.tagName === 'TH' ? 'th' : 'td';
+      const nc = newCell(tag, op === 'rowAbove' ? down : up); tr.append(nc);
+      if (c === me.c) first = nc;
+    }
+    afterTableEdit(first || tr.cells[0]); return;
+  }
+  if (op === 'colBefore' || op === 'colAfter') {
+    const K = op === 'colBefore' ? me.c : me.c + me.cs; // رقم العمود الجديد
+    const seen = new Set(); let mine = null;
+    M.rows.forEach((tr, r) => {
+      const left = K > 0 ? M.map[r][K - 1] : null, right = M.map[r][K] || null;
+      if (left && left === right) { if (!seen.has(left)) { seen.add(left); setSpan(left, 'colspan', M.info.get(left).cs + 1); } return; }
+      const ref = op === 'colBefore' ? right : left;
+      const nc = newCell(ref && ref.tagName === 'TH' && (!left || !right || left.tagName === right.tagName) ? 'th' : 'td', ref);
+      placeCell(M, r, K - 1, nc);
+      if (r === me.r) mine = nc;
+    });
+    if (cols) {
+      const cs = Array.from(cols.children), nb = cs[Math.min(K, cs.length - 1)] || cs[cs.length - 1];
+      if (nb) {
+        const w = parseFloat(nb.style.width) || 0;
+        const col = document.createElement('col');
+        if (w) { nb.style.width = (Math.round(w / 2 * 10) / 10) + '%'; col.style.width = (Math.round(w / 2 * 10) / 10) + '%'; }
+        cols.insertBefore(col, cs[K] || null);
+      }
+    }
+    afterTableEdit(mine); return;
+  }
+  if (op === 'delRow') {
+    if (M.rows.length <= 1) { tableOp('delTable'); return; }
+    const R = me.r, seen = new Set();
+    for (let c = 0; c < M.ncol; c++) {
+      const x = M.map[R][c]; if (!x || seen.has(x)) continue; seen.add(x);
+      const i = M.info.get(x);
+      if (i.rs > 1) {
+        setSpan(x, 'rowspan', i.rs - 1);
+        if (i.r === R) placeCell(M, R + 1, i.c - 0.5, x); // الخلية المدمجة تنزل للصف التالي
+      }
+    }
+    const nextRow = M.rows[R + 1] || M.rows[R - 1];
+    M.rows[R].remove();
+    afterTableEdit(nextRow && nextRow.cells[0]); return;
+  }
+  if (op === 'delCol') {
+    if (M.ncol <= 1) { tableOp('delTable'); return; }
+    const C = me.c, seen = new Set();
+    M.rows.forEach((tr, r) => {
+      const x = M.map[r][C]; if (!x || seen.has(x)) return; seen.add(x);
+      const i = M.info.get(x);
+      if (i.cs > 1) setSpan(x, 'colspan', i.cs - 1); else x.remove();
+    });
+    M.rows.forEach((tr) => { if (!tr.cells.length) tr.remove(); });
+    if (cols && cols.children[C]) cols.children[C].remove();
+    const row = M.rows[me.r].isConnected ? M.rows[me.r] : t.rows[0];
+    afterTableEdit(row && row.cells[Math.min(C, row.cells.length - 1)]); return;
+  }
+}
+
+/* ---------- حدود الجدول ---------- */
+const TABLE_BORDERS = ['all', 'outside', 'inside', 'h', 'apa', 'none'];
+function tableBorderOf(t) { const m = (t.className || '').match(/\bbd-(\w+)\b/); return m ? m[1] : 'all'; }
+function setTableBorders(kind) {
+  if (document.body.classList.contains('pages-mode')) setPagesView(false);
+  const cell = curCell();
+  if (!cell) { toast(t('tblNoCell')); return; }
+  const tb = cell.closest('table');
+  TABLE_BORDERS.forEach((k) => tb.classList.remove('bd-' + k));
+  if (kind !== 'all') tb.classList.add('bd-' + kind);
+  afterTableEdit(cell); renderRibbon();
+}
+
+/* ---------- قائمة الزر الأيمن داخل الجدول ---------- */
+function initTableMenu() {
+  page.addEventListener('contextmenu', (e) => {
+    const c = e.target.closest && e.target.closest('td,th');
+    if (!c || !page.contains(c)) return;
+    e.preventDefault();
+    closeTableMenu();
+    const s = document.getSelection();
+    if (!c.contains(s.anchorNode)) { const r = document.createRange(); r.selectNodeContents(c); r.collapse(true); s.removeAllRanges(); s.addRange(r); }
+    const m = el('div', { class: 'ctx-menu', id: 'tblMenu', role: 'menu' });
+    const item = (label, fn) => m.append(el('button', { class: 'ctx-item', role: 'menuitem', html: label, onmousedown: (ev) => ev.preventDefault(), onclick: () => { closeTableMenu(); fn(); } }));
+    item('↑ ' + escapeHtml(t('rowAbove')), () => tableOp('rowAbove'));
+    item('↓ ' + escapeHtml(t('rowBelow')), () => tableOp('rowBelow'));
+    item('→ ' + escapeHtml(t('colRight')), () => tableOp('colRight'));
+    item('← ' + escapeHtml(t('colLeft')), () => tableOp('colLeft'));
+    m.append(el('div', { class: 'ctx-sep' }));
+    item('✕ ' + escapeHtml(t('delRow')), () => tableOp('delRow'));
+    item('✕ ' + escapeHtml(t('delCol')), () => tableOp('delCol'));
+    item('🗑 ' + escapeHtml(t('delTable')), () => tableOp('delTable'));
+    document.body.append(m);
+    const w = m.offsetWidth, h = m.offsetHeight;
+    m.style.left = Math.min(e.clientX, innerWidth - w - 6) + 'px';
+    m.style.top = Math.min(e.clientY, innerHeight - h - 6) + 'px';
+  });
+  document.addEventListener('mousedown', (e) => { if (!e.target.closest('#tblMenu')) closeTableMenu(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeTableMenu(); });
+  window.addEventListener('blur', closeTableMenu);
+}
+function closeTableMenu() { const m = document.getElementById('tblMenu'); if (m) m.remove(); }
+
+/* ---------- إطار الصفحة ---------- */
+const FRAME_COLORS = { teal: '#0F5F66', black: '#222222', copper: '#B8732E' };
+function frameOf(s) { return s.pageBorder && s.pageBorder !== 'none' ? s.pageBorder : ''; }
+function addPageFrame(pg, g) {
+  const s = WQ.doc.settings, kind = frameOf(s);
+  if (!kind) return;
+  const inset = Math.max(0.6 * CM, Math.min(g.mt, g.ms) * 0.45);
+  const color = FRAME_COLORS[s.pageBorderColor] || FRAME_COLORS.teal;
+  const f = el('div', { class: 'pv-frame f-' + kind });
+  f.style.cssText = 'inset:' + inset + 'px;color:' + color;
+  if (kind === 'thickThin') f.append(el('div', { class: 'pv-frame-in' }));
+  pg.append(f);
+}
+
 /* ===== pages: عرض الصفحات الحقيقي (تقسيم المستند لصفحات، والحواشي أسفل كل صفحة، وأرقام الصفحات) ===== */
 const CM = 37.7953;
 function pageGeom() {
@@ -2164,6 +2376,7 @@ function makePage(g, n) {
   const fns = el('div', { class: 'pv-fns fn-zone', dir: page.dir, lang: page.lang });
   const num = el('div', { class: 'pv-num' }); num.style.bottom = (g.mt / 2 - 8) + 'px';
   box.append(body, fns); pg.append(box, num);
+  addPageFrame(pg, g);
   return { pg, body, fns, num };
 }
 /* حواشي الصفحة = المؤشرات الموجودة في متنها */
@@ -2379,13 +2592,18 @@ function drawPage(pv, scale) {
     [['Top', r.left, r.top, r.right, r.top], ['Bottom', r.left, r.bottom, r.right, r.bottom], ['Left', r.left, r.top, r.left, r.bottom], ['Right', r.right, r.top, r.right, r.bottom]].forEach(([side, x1, y1, x2, y2]) => {
       const w = parseFloat(cs['border' + side + 'Width']); const st = cs['border' + side + 'Style'];
       if (!w || st === 'none' || st === 'hidden') return;
-      ctx.strokeStyle = cs['border' + side + 'Color']; ctx.lineWidth = w;
+      ctx.strokeStyle = cs['border' + side + 'Color'];
       ctx.setLineDash(st === 'dotted' ? [1, 2] : (st === 'dashed' ? [6, 4] : []));
-      const o = w / 2 * (side === 'Top' || side === 'Left' ? 1 : -1);
-      ctx.beginPath();
-      if (side === 'Top' || side === 'Bottom') { ctx.moveTo(X(x1), Y(y1) + o); ctx.lineTo(X(x2), Y(y2) + o); }
-      else { ctx.moveTo(X(x1) + o, Y(y1)); ctx.lineTo(X(x2) + o, Y(y2)); }
-      ctx.stroke();
+      const sgn = side === 'Top' || side === 'Left' ? 1 : -1;
+      // الخط المزدوج = خطان رفيعان بينهما فراغ
+      const lines = st === 'double' && w >= 3 ? [[w / 6, w / 3], [w - w / 6, w / 3]] : [[w / 2, w]];
+      lines.forEach(([d, lw]) => {
+        const o = d * sgn; ctx.lineWidth = lw;
+        ctx.beginPath();
+        if (side === 'Top' || side === 'Bottom') { ctx.moveTo(X(x1), Y(y1) + o); ctx.lineTo(X(x2), Y(y2) + o); }
+        else { ctx.moveTo(X(x1) + o, Y(y1)); ctx.lineTo(X(x2) + o, Y(y2)); }
+        ctx.stroke();
+      });
     });
     ctx.setLineDash([]);
   });
@@ -2594,6 +2812,22 @@ async function doPrint() {
 
 /* ===== docx: تصدير ملف Word حقيقي (عناوين، تنسيق، اتجاه، قوائم، جداول، صور، حواشي Word أصلية، إعداد الصفحة) ===== */
 function cssHex(c) { const m = String(c).match(/\d+/g); return m && m.length >= 3 ? m.slice(0, 3).map((v) => (+v).toString(16).padStart(2, '0')).join('').toUpperCase() : ''; }
+/* حدود الجدول حسب اختيار المستخدم */
+function tblBorderXml(t) {
+  const k = (t.className.match(/\bbd-(\w+)\b/) || [])[1] || 'all';
+  const on = { all: 'top left bottom right insideH insideV', outside: 'top left bottom right', inside: 'insideH insideV', h: 'top bottom insideH', apa: 'top bottom', none: '' }[k] || '';
+  return ['top', 'left', 'bottom', 'right', 'insideH', 'insideV'].map((b) => on.split(' ').includes(b)
+    ? '<w:' + b + ' w:val="single" w:sz="' + ((k === 'apa' || k === 'outside') && !/^inside/.test(b) ? 12 : 4) + '" w:space="0" w:color="' + (k === 'apa' ? '222222' : (k === 'outside' ? '555555' : '999999')) + '"/>'
+    : '<w:' + b + ' w:val="nil"/>').join('');
+}
+/* إطار الصفحة في Word */
+function pgBordersXml(s) {
+  const k = s.pageBorder; if (!k || k === 'none') return '';
+  const v = { single: ['single', 12], double: ['double', 6], thick: ['single', 24], thickThin: ['thickThinSmallGap', 24] }[k]; if (!v) return '';
+  const col = ({ teal: '0F5F66', black: '222222', copper: 'B8732E' })[s.pageBorderColor] || '0F5F66';
+  return '<w:pgBorders w:offsetFrom="text">' + ['top', 'left', 'bottom', 'right'].map((b) => '<w:' + b + ' w:val="' + v[0] + '" w:sz="' + v[1] + '" w:space="24" w:color="' + col + '"/>').join('') + '</w:pgBorders>';
+}
+
 const X = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
 const RTL_CH = /[\u0590-\u05FF\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/;
 const LTR_CH = /[A-Za-z\u00C0-\u024F]/;
@@ -2739,7 +2973,7 @@ function docxBuilder() {
       const tsz = e.classList.contains('dense') ? 19 : (e.classList.contains('compact') ? 24 : 27);
       const rtl = isRtl(e);
       let x = '<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/>' + (rtl ? '<w:bidiVisual/>' : '') + '<w:tblW w:w="5000" w:type="pct"/>' +
-        '<w:tblBorders>' + ['top', 'left', 'bottom', 'right', 'insideH', 'insideV'].map((b) => '<w:' + b + ' w:val="single" w:sz="4" w:space="0" w:color="999999"/>').join('') + '</w:tblBorders><w:tblCellMar><w:left w:w="45" w:type="dxa"/><w:right w:w="45" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>';
+        '<w:tblBorders>' + tblBorderXml(e) + '</w:tblBorders><w:tblCellMar><w:left w:w="45" w:type="dxa"/><w:right w:w="45" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>';
       colW.forEach((w) => { x += '<w:gridCol w:w="' + w + '"/>'; });
       x += '</w:tblGrid>';
       rows.forEach((r, ri) => {
@@ -2751,8 +2985,10 @@ function docxBuilder() {
           if (!o.lead) continue;
           const c = o.c, w = colW.slice(col, col + o.cs).reduce((a, b) => a + b, 0);
           const vm = (c.rowSpan || 1) > 1 ? (o.first ? '<w:vMerge w:val="restart"/>' : '<w:vMerge/>') : '';
-          const bg = c.style.backgroundColor ? cssHex(c.style.backgroundColor) : (c.tagName === 'TH' ? 'F4EFE6' : '');
-          x += '<w:tc><w:tcPr><w:tcW w:w="' + w + '" w:type="dxa"/>' + (o.cs > 1 ? '<w:gridSpan w:val="' + o.cs + '"/>' : '') + vm +
+          const apa = e.classList.contains('bd-apa');
+          const bg = c.style.backgroundColor ? cssHex(c.style.backgroundColor) : (c.tagName === 'TH' && !apa ? 'F4EFE6' : '');
+          const apaLine = apa && (c.tagName === 'TH' || ri === 0) ? '<w:tcBorders><w:bottom w:val="single" w:sz="6" w:space="0" w:color="222222"/></w:tcBorders>' : '';
+          x += '<w:tc><w:tcPr><w:tcW w:w="' + w + '" w:type="dxa"/>' + (o.cs > 1 ? '<w:gridSpan w:val="' + o.cs + '"/>' : '') + vm + apaLine +
             (bg ? '<w:shd w:val="clear" w:color="auto" w:fill="' + bg + '"/>' : '') + '<w:vAlign w:val="center"/></w:tcPr>';
           if (o.first) {
             let pp = para(c, '', Object.assign({ sz: tsz }, c.tagName === 'TH' ? { b: true } : {})).replace('<w:jc w:val="both"/>', '');
@@ -2814,7 +3050,7 @@ function docxBuilder() {
     const sect = '<w:sectPr><w:footerReference w:type="default" r:id="rIdFtr1"/>' + (hideFirst ? '<w:footerReference w:type="first" r:id="rIdFtr2"/>' : '') +
       '<w:footnotePr><w:numFmt w:val="' + (hindi ? 'hindiNumbers' : 'decimal') + '"/>' + (s.fnRestart ? '<w:numRestart w:val="eachPage"/>' : '') + '</w:footnotePr>' +
       '<w:pgSz w:w="' + W + '" w:h="' + H + '"/><w:pgMar w:top="' + mT + '" w:right="' + mS + '" w:bottom="' + mT + '" w:left="' + mS + '" w:header="708" w:footer="567" w:gutter="0"/>' +
-      '<w:pgNumType w:fmt="' + (hindi ? 'hindiNumbers' : 'decimal') + '"/>' + (hideFirst ? '<w:titlePg/>' : '') + (ar ? '<w:bidi/>' : '') + '</w:sectPr>';
+      pgBordersXml(s) + '<w:pgNumType w:fmt="' + (hindi ? 'hindiNumbers' : 'decimal') + '"/>' + (hideFirst ? '<w:titlePg/>' : '') + (ar ? '<w:bidi/>' : '') + '</w:sectPr>';
     const documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ' + NS + '><w:body>' + body + sect + '</w:body></w:document>';
     const rPrDef = '<w:rFonts w:ascii="' + X(docFont) + '" w:hAnsi="' + X(docFont) + '" w:cs="' + X(docFont) + '" w:eastAsia="' + X(docFont) + '"/><w:sz w:val="32"/><w:szCs w:val="32"/><w:lang w:val="en-US" w:bidi="ar-EG"/>';
     const hs = (id, name, sz, color, lvl) => '<w:style w:type="paragraph" w:styleId="' + id + '"><w:name w:val="' + name + '"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="240" w:after="120"/>' + (lvl !== undefined ? '<w:outlineLvl w:val="' + lvl + '"/>' : '') + '</w:pPr><w:rPr><w:b/><w:bCs/><w:color w:val="' + color + '"/><w:sz w:val="' + sz + '"/><w:szCs w:val="' + sz + '"/></w:rPr></w:style>';
@@ -3258,7 +3494,7 @@ const FONTS = [
 ];
 const SIZES = [10, 11, 12, 13, 14, 16, 18, 20, 24, 28, 32];
 const TABS = [
-  { id: 'file', key: 'tabFile' }, { id: 'home', key: 'tabHome' }, { id: 'insert', key: 'tabInsert' },
+  { id: 'file', key: 'tabFile' }, { id: 'home', key: 'tabHome' }, { id: 'insert', key: 'tabInsert' }, { id: 'table', key: 'tabTable' },
   { id: 'cite', key: 'tabCite' }, { id: 'thesis', key: 'tabThesis' },
   { id: 'layout', key: 'tabLayout' }, { id: 'view', key: 'tabView' }
 ];
@@ -3356,6 +3592,18 @@ function renderRibbon() {
         sep(), rb('⤓ ' + t('pageBreak'), t('pageBreak'), insertPageBreak), rb('― ' + t('hr'), t('hr'), () => insertHtml('<hr><p dir="auto"><br></p>')),
         sep(), rb('« »', t('quotes'), insertQuotes, 'special'), rb('﴿ ﴾ ' + t('insertAyah'), t('insertAyah'), openAyahDialog, 'special'));
       break;
+    case 'table': {
+      const c = curCell(), tb = c && c.closest('table');
+      add(rb('▦ ' + t('table'), t('table'), openTableDialog), sep(),
+        rb('↑ ' + t('rowAbove'), t('rowAbove'), () => tableOp('rowAbove')), rb('↓ ' + t('rowBelow'), t('rowBelow'), () => tableOp('rowBelow')),
+        rb('→ ' + t('colRight'), t('colRight'), () => tableOp('colRight')), rb('← ' + t('colLeft'), t('colLeft'), () => tableOp('colLeft')), sep(),
+        rb('✕ ' + t('delRow'), t('delRow'), () => tableOp('delRow'), 'outline'), rb('✕ ' + t('delCol'), t('delCol'), () => tableOp('delCol'), 'outline'),
+        rb('🗑 ' + t('delTable'), t('delTable'), () => tableOp('delTable'), 'outline'), sep(),
+        el('span', { class: 'rlabel', html: escapeHtml(t('tblBorders')) }),
+        rsel(t('tblBorders'), [['all', t('bdAll')], ['outside', t('bdOutside')], ['inside', t('bdInside')], ['h', t('bdH')], ['apa', t('bdApa')], ['none', t('bdNone')]], tb ? tableBorderOf(tb) : 'all', setTableBorders),
+        el('span', { class: 'rlabel', html: '· ' + escapeHtml(t('tblHint')) }));
+      break;
+    }
     case 'cite':
       add(el('span', { class: 'rlabel', html: escapeHtml(t('citeStyle')) }),
         rsel(t('citeStyle'), [['notes', t('styleNotes')], ['apa', 'APA'], ['vancouver', 'Vancouver']], s.citeStyle || 'notes', setCiteStyle), sep(),
@@ -3383,6 +3631,9 @@ function renderRibbon() {
         rsel(t('margins'), [['normal', t('mNormal')], ['narrow', t('mNarrow')], ['wide', t('mWide')]], s.margins, (v) => setSetting('margins', v)),
         el('span', { class: 'rlabel', html: escapeHtml(t('lineSpacing')) }),
         ...(isRuled() ? [] : [rsel(t('lineSpacing'), [['1', '1.0'], ['115', '1.15'], ['15', '1.5'], ['2', '2.0']], s.lineSpacing, (v) => setSetting('lineSpacing', v))]), sep(),
+        el('span', { class: 'rlabel', html: escapeHtml(t('pageBorder')) }),
+        rsel(t('pageBorder'), [['none', t('pbNone')], ['single', t('pbSingle')], ['double', t('pbDouble')], ['thick', t('pbThick')], ['thickThin', t('pbThickThin')]], s.pageBorder || 'none', (v) => { setSetting('pageBorder', v); renderRibbon(); if (v !== 'none') { toast(t('pbHint')); if (!document.body.classList.contains('pages-mode')) { setPagesView(true); return; } } if (document.body.classList.contains('pages-mode')) paginate(); }),
+        ...(frameOf(s) ? [rsel(t('pbColor'), [['teal', t('cTeal')], ['black', t('cBlack')], ['copper', t('cCopper')]], s.pageBorderColor || 'teal', (v) => { setSetting('pageBorderColor', v); if (document.body.classList.contains('pages-mode')) paginate(); })] : []), sep(),
         el('span', { class: 'rlabel', html: escapeHtml(t('ruling')) }),
         rsel(t('ruling'), [['off', t('ruleOff')], ['dots', t('ruleDots')], ['dash', t('ruleDash')], ['line', t('ruleLine')]], s.ruled || 'off', (v) => { setSetting('ruled', v); renderRibbon(); }),
         ...(isRuled() ? [el('span', { class: 'rlabel', html: escapeHtml(t('ruleGap')) }),
@@ -3531,6 +3782,7 @@ function boot() {
   initEditor();
   initCiteEvents();
   initPagesEvents();
+  initTableMenu();
   restoreOrNew();
   applyPrefs();
   applyUiLang();
