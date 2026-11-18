@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ورّاق – Warraq</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri:ital,wght@0,400;0,700;1,400&family=Noto+Naskh+Arabic:wght@400;700&family=Cairo:wght@400;700&family=Tajawal:wght@400;700&display=swap">
+<style>
+%%STYLE%%
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="titlebar">
+    <div class="tb-start">
+      <span class="logo">%%LOGO%%</span>
+      <span class="app-name" data-i18n="appName"></span>
+      <input id="docTitle" class="doc-title" spellcheck="false" aria-label="title">
+      <span class="ext">.warraq</span>
+      <span id="saveState" class="save-state"></span>
+    </div>
+    <div class="tb-end">
+      <button id="btnSnap" class="tb-btn"></button>
+      <button id="btnUiLang" class="tb-btn" title=""></button>
+    </div>
+  </header>
+  <nav id="tabs" class="tabs" role="tablist"></nav>
+  <div id="ribbon" class="ribbon"></div>
+  <main class="workspace">
+    <aside id="navPanel" class="panel nav-panel">
+      <h3><span class="ic">☰</span> <span data-i18n="docMap"></span></h3>
+      <div id="navList" class="nav-list"></div>
+    </aside>
+    <section class="canvas" id="canvas">
+      <div id="sheet" class="sheet">
+        <div id="page" class="page" contenteditable="true" spellcheck="true"></div>
+        <div id="fnZone" class="fn-zone"></div>
+      </div>
+      <div id="pagesView" class="pages-view"></div>
+    </section>
+    <aside id="refPanel" class="panel ref-panel">
+      <h3><span class="ic">▤</span> <span data-i18n="references"></span></h3>
+      <div id="refPanelBody"></div>
+    </aside>
+  </main>
+  <footer class="statusbar">
+    <span id="stWords"></span>
+    <button id="stGoal" class="st-btn"></button>
+    <span id="stLang"></span>
+    <span class="app-ver no-print"></span>
+  </footer>
+</div>
+<div id="modalRoot"></div>
+<div id="toast" class="toast" role="status"></div>
+<input type="file" id="fileOpen" accept=".warraq,.json,application/json" hidden>
+<input type="file" id="fileImage" accept="image/*" hidden>
+<input type="file" id="fileDocx" accept=".docx,.doc,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+<script>
+%%SCRIPTS%%
+</script>
+</body>
+</html>

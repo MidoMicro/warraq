@@ -1,0 +1,93 @@
+{
+  "name": "warraq",
+  "productName": "Warraq",
+  "version": "0.7.0",
+  "description": "ورّاق: محرر عربي للباحثين والطلبة",
+  "author": {
+    "name": "Warraq",
+    "url": "https://getwarraq.org"
+  },
+  "license": "GPL-3.0-only",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8",
+    "resedit": "2.0.3"
+  },
+  "build": {
+    "appId": "app.warraq.editor",
+    "productName": "Warraq",
+    "executableName": "Warraq",
+    "copyright": "© 2026 ورّاق – Warraq · GPL-3.0",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "web/**/*",
+      "build/icon.png"
+    ],
+    "asar": true,
+    "afterPack": "build/afterPack.js",
+    "fileAssociations": [
+      {
+        "ext": "warraq",
+        "name": "Warraq.Document",
+        "description": "Warraq Document",
+        "icon": "build/file.ico",
+        "role": "Editor"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Warraq - ورّاق",
+      "artifactName": "Warraq-Setup-${version}.${ext}",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "unicode": true,
+      "installerLanguages": [
+        "ar_SA"
+      ],
+      "language": "1025",
+      "multiLanguageInstaller": false
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "MidoMicro",
+        "repo": "warraq",
+        "releaseType": "release"
+      }
+    ]
+  },
+  "homepage": "https://getwarraq.org",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MidoMicro/warraq.git"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  }
+}
