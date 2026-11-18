@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>إحصاءات ورّاق</title>
+<link rel="icon" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap">
+<style>
+:root{--teal:#0F5F66;--teal-d:#0B4C52;--copper:#B8732E;--paper:#F4EFE6;--card:#FFFDF9;--ink:#24302F;--muted:#5E6B6A;--line:#DDD3C0;--grid:#E9E2D4}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Cairo',system-ui,sans-serif;background:var(--paper);color:var(--ink);font-size:16px;line-height:1.6}
+header{background:var(--teal);color:#fff}
+header .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;height:60px}
+.wrap{max-width:1000px;margin:0 auto;padding:0 18px}
+h1{font-size:20px;margin:0;font-weight:800}
+h2{font-size:18px;margin:28px 0 10px;color:var(--teal-d)}
+button{font-family:inherit;font-size:14px;background:#fff;color:var(--teal);border:none;border-radius:8px;padding:6px 14px;cursor:pointer;font-weight:700}
+button:disabled{opacity:.6;cursor:wait}
+.meta{color:var(--muted);font-size:13px;margin:14px 0 0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:16px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.tile .label{color:var(--muted);font-size:14px}
+.tile .value{font-size:34px;font-weight:800;color:var(--teal-d);line-height:1.3}
+.tile .hint{color:var(--muted);font-size:12.5px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+#chart{position:relative;width:100%}
+#chart svg{display:block;width:100%;overflow:visible}
+.tip{position:absolute;pointer-events:none;background:#1F2A29;color:#fff;font-size:13px;padding:6px 10px;border-radius:8px;white-space:nowrap;opacity:0;transition:opacity .1s;transform:translate(-50%,-100%)}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th,td{padding:8px 6px;border-bottom:1px solid var(--grid);text-align:start}
+th{color:var(--muted);font-weight:600;font-size:13px}
+td.num,th.num{text-align:end;font-variant-numeric:tabular-nums}
+.badge{display:inline-block;font-size:11.5px;border:1px solid var(--teal);color:var(--teal);border-radius:20px;padding:0 8px;margin-inline-start:6px}
+.err{background:#FBEDE4;border:1px solid #E7C3A8;color:#7A3E12;border-radius:10px;padding:10px 14px;margin-top:16px;display:none}
+.note{color:var(--muted);font-size:13.5px}
+.note li{margin:4px 0}
+a{color:var(--teal)}
+</style>
+</head>
+<body>
+<header><div class="wrap"><h1>📊 إحصاءات ورّاق</h1><button id="refresh" type="button">تحديث</button></div></header>
+<main class="wrap">
+  <p class="meta" id="meta">جاري جلب الأرقام من GitHub…</p>
+  <div class="err" id="err"></div>
+
+  <div class="tiles">
+    <div class="tile"><div class="label">تحميلات ملف التثبيت (كل الإصدارات)</div><div class="value" id="tInstalls">—</div><div class="hint">كل مرة حد حمّل البرنامج أو اتحدّث لنسخة جديدة</div></div>
+    <div class="tile"><div class="label">تحميلات آخر إصدار <span id="tLatestTag"></span></div><div class="value" id="tLatest">—</div><div class="hint" id="tLatestHint">&nbsp;</div></div>
+    <div class="tile"><div class="label">مرات فحص التحديثات</div><div class="value" id="tChecks">—</div><div class="hint">بيقيس نشاط البرامج المثبّتة (كل تشغيل، وكل ٦ ساعات)</div></div>
+    <div class="tile"><div class="label">نجوم المستودع ⭐</div><div class="value" id="tStars">—</div><div class="hint" id="tRepoHint">&nbsp;</div></div>
+  </div>
+
+  <h2>تحميلات ملف التثبيت لكل إصدار</h2>
+  <div class="card"><div id="chart"><div class="tip" id="tip"></div></div></div>
+
+  <h2>التفاصيل</h2>
+  <div class="card" style="overflow-x:auto">
+    <table>
+      <thead><tr><th>الإصدار</th><th>تاريخ النشر</th><th class="num">تحميلات التثبيت</th><th class="num">فحص التحديثات</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+
+  <h2>إزاي تقرأ الأرقام</h2>
+  <ul class="note">
+    <li>الأرقام دي <b>عدد مرات التحميل، مش عدد الأشخاص</b>. الشخص اللي حمّل مرتين بيتحسب مرتين.</li>
+    <li>من 0.7.0 ورايح، <b>التحديث التلقائي بيتحسب كتحميل</b> للإصدار الجديد.</li>
+    <li>"فحص التحديثات" هو عدد مرات طلب ملف <code>latest.yml</code>. كل برنامج مثبّت بيطلبه مع كل تشغيل وكل ٦ ساعات، فالرقم ده بيكبر مع الاستخدام الفعلي، ومش عدد أشخاص.</li>
+    <li>نسخة المتصفح (getwarraq.org/app) مش بتتحسب هنا.</li>
+    <li>الأرقام جاية مباشرة من GitHub، والصفحة دي مش بتجمع أي بيانات عن الزوار، ومش ظاهرة في محركات البحث.</li>
+  </ul>
+  <p class="meta"><a href="./">الصفحة الرئيسية</a> · <a href="https://github.com/MidoMicro/warraq/releases">صفحة الإصدارات</a></p>
+  <p style="height:30px"></p>
+</main>
+<script>
+(function () {
+  var REPO = 'MidoMicro/warraq';
+  var fmt = function (n) { return Number(n || 0).toLocaleString('ar-EG'); };
+  var day = function (s) { try { return new Date(s).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }); } catch (e) { return s; } };
+  var $ = function (id) { return document.getElementById(id); };
+  var last = null;
+
+  function sumAssets(rel, re) { return (rel.assets || []).filter(function (a) { return re.test(a.name); }).reduce(function (s, a) { return s + (a.download_count || 0); }, 0); }
+
+  function drawChart(list) {
+    var box = $('chart'), tip = $('tip');
+    var old = box.querySelector('svg'); if (old) old.remove();
+    if (!list.length) return;
+    var W = Math.max(280, box.clientWidth), H = 220, padT = 24, padB = 34, padS = 36;
+    var max = Math.max(1, Math.max.apply(null, list.map(function (r) { return r.installs; })));
+    var nice = Math.pow(10, Math.floor(Math.log10(max))); var top = Math.ceil(max / nice) * nice; if (top < 5) top = 5;
+    var n = list.length, slot = (W - padS) / n, bw = Math.min(56, slot * 0.6);
+    var y = function (v) { return padT + (H - padT - padB) * (1 - v / top); };
+    var NS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', 'تحميلات ملف التثبيت لكل إصدار');
+    // خطوط الشبكة
+    [0, 0.5, 1].forEach(function (f) {
+      var v = Math.round(top * f), yy = y(v);
+      var l = document.createElementNS(NS, 'line'); l.setAttribute('x1', 0); l.setAttribute('x2', W - padS + 4); l.setAttribute('y1', yy); l.setAttribute('y2', yy);
+      l.setAttribute('stroke', f === 0 ? '#C9BFAE' : '#E9E2D4'); l.setAttribute('stroke-width', 1); svg.appendChild(l);
+      var t = document.createElementNS(NS, 'text'); t.setAttribute('x', W - 2); t.setAttribute('y', yy + 4); t.setAttribute('text-anchor', 'end');
+      t.setAttribute('font-size', 11); t.setAttribute('fill', '#5E6B6A'); t.textContent = fmt(v); svg.appendChild(t);
+    });
+    list.forEach(function (r, i) {
+      // من اليمين للشمال: الأقدم على اليمين
+      var cx = (W - padS) - slot * (i + 0.5);
+      var h = Math.max(0, y(0) - y(r.installs)), x = cx - bw / 2, top0 = y(r.installs);
+      var p = document.createElementNS(NS, 'path'); var rad = Math.min(4, h);
+      p.setAttribute('d', h > 0 ? 'M' + x + ',' + y(0) + 'V' + (top0 + rad) + 'Q' + x + ',' + top0 + ' ' + (x + rad) + ',' + top0 + 'H' + (x + bw - rad) + 'Q' + (x + bw) + ',' + top0 + ' ' + (x + bw) + ',' + (top0 + rad) + 'V' + y(0) + 'Z' : '');
+      p.setAttribute('fill', r.latest ? '#0F5F66' : '#6FA3A8'); svg.appendChild(p);
+      var lab = document.createElementNS(NS, 'text'); lab.setAttribute('x', cx); lab.setAttribute('y', H - 12); lab.setAttribute('text-anchor', 'middle');
+      lab.setAttribute('font-size', 12); lab.setAttribute('fill', '#24302F'); lab.textContent = r.tag; svg.appendChild(lab);
+      if (r.latest) { var v = document.createElementNS(NS, 'text'); v.setAttribute('x', cx); v.setAttribute('y', top0 - 6); v.setAttribute('text-anchor', 'middle'); v.setAttribute('font-size', 12); v.setAttribute('font-weight', 700); v.setAttribute('fill', '#24302F'); v.textContent = fmt(r.installs); svg.appendChild(v); }
+      // منطقة لمس أكبر من العمود
+      var hit = document.createElementNS(NS, 'rect'); hit.setAttribute('x', cx - slot / 2); hit.setAttribute('y', padT); hit.setAttribute('width', slot); hit.setAttribute('height', H - padT - padB);
+      hit.setAttribute('fill', 'transparent'); hit.style.cursor = 'default';
+      var show = function () { tip.textContent = r.tag + ': ' + fmt(r.installs) + ' تحميل · ' + fmt(r.checks) + ' فحص تحديث'; var sx = box.clientWidth / W; tip.style.left = Math.min(box.clientWidth - 90, Math.max(90, cx * sx)) + 'px'; tip.style.top = (top0 * sx - 6) + 'px'; tip.style.opacity = 1; };
+      hit.addEventListener('mouseenter', show); hit.addEventListener('touchstart', show, { passive: true });
+      hit.addEventListener('mouseleave', function () { tip.style.opacity = 0; });
+      svg.appendChild(hit);
+    });
+    box.insertBefore(svg, tip);
+  }
+
+  function render(rels, repo) {
+    var list = rels.filter(function (r) { return !r.draft; }).map(function (r) {
+      return { tag: r.tag_name, date: r.published_at, installs: sumAssets(r, /\.exe$/i), checks: sumAssets(r, /^latest\.yml$/i), pre: r.prerelease };
+    }).sort(function (a, b) { return new Date(a.date) - new Date(b.date); });
+    if (list.length) list[list.length - 1].latest = true;
+    var total = list.reduce(function (s, r) { return s + r.installs; }, 0);
+    var checks = list.reduce(function (s, r) { return s + r.checks; }, 0);
+    var lt = list[list.length - 1];
+    $('tInstalls').textContent = fmt(total);
+    $('tChecks').textContent = fmt(checks);
+    $('tLatest').textContent = lt ? fmt(lt.installs) : '—';
+    $('tLatestTag').textContent = lt ? '(' + lt.tag + ')' : '';
+    $('tLatestHint').textContent = lt ? 'اتنشر ' + day(lt.date) : '';
+    if (repo) { $('tStars').textContent = fmt(repo.stargazers_count); $('tRepoHint').textContent = 'متابعين ' + fmt(repo.subscribers_count) + ' · نسخ (Fork) ' + fmt(repo.forks_count) + ' · بلاغات مفتوحة ' + fmt(repo.open_issues_count); }
+    var tb = $('rows'); tb.textContent = '';
+    list.slice().reverse().forEach(function (r) {
+      var tr = document.createElement('tr');
+      var c1 = document.createElement('td'); c1.textContent = r.tag; if (r.latest) { var b = document.createElement('span'); b.className = 'badge'; b.textContent = 'الأحدث'; c1.appendChild(b); }
+      var c2 = document.createElement('td'); c2.textContent = day(r.date);
+      var c3 = document.createElement('td'); c3.className = 'num'; c3.textContent = fmt(r.installs);
+      var c4 = document.createElement('td'); c4.className = 'num'; c4.textContent = r.checks ? fmt(r.checks) : '—';
+      tr.append(c1, c2, c3, c4); tb.appendChild(tr);
+    });
+    last = list; drawChart(list);
+  }
+
+  function load() {
+    var btn = $('refresh'); btn.disabled = true; $('err').style.display = 'none';
+    Promise.all([
+      fetch('https://api.github.com/repos/' + REPO + '/releases?per_page=100', { headers: { Accept: 'application/vnd.github+json' } }),
+      fetch('https://api.github.com/repos/' + REPO, { headers: { Accept: 'application/vnd.github+json' } })
+    ]).then(function (rs) {
+      if (rs[0].status === 403 || rs[0].status === 429) throw new Error('limit');
+      if (!rs[0].ok) throw new Error('http ' + rs[0].status);
+      return Promise.all([rs[0].json(), rs[1].ok ? rs[1].json() : null]);
+    }).then(function (d) {
+      render(d[0], d[1]);
+      $('meta').textContent = 'آخر تحديث: ' + new Date().toLocaleString('ar-EG', { hour: 'numeric', minute: '2-digit', day: 'numeric', month: 'long' }) + ' · المصدر: GitHub';
+    }).catch(function (e) {
+      var el = $('err'); el.style.display = 'block';
+      el.textContent = e.message === 'limit'
+        ? 'GitHub بيسمح بعدد محدود من الطلبات في الساعة من نفس الشبكة. جرّب تاني بعد شوية.'
+        : 'مقدرناش نجيب الأرقام دلوقتي. اتأكد من الإنترنت وجرّب تاني.';
+      if (!last) $('meta').textContent = '';
+    }).then(function () { btn.disabled = false; });
+  }
+  $('refresh').addEventListener('click', load);
+  var rt; window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { if (last) drawChart(last); }, 150); });
+  load();
+  setInterval(load, 10 * 60 * 1000);
+})();
+</script>
+</body>
+</html>
