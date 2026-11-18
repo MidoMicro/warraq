@@ -1,0 +1,24 @@
+name: 💡 اقتراح ميزة | Feature request
+description: هل لديك فكرة تجعل ورّاق أفضل للباحثين والطلبة؟ | An idea to make Warraq better?
+labels: ["اقتراح", "enhancement"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: الاقتراح | The idea
+      description: "ما الذي تحتاجه، وفي أي موقف؟ (مثلاً: أثناء كتابة الفصل الثالث أحتاج إلى…) | What do you need, and when?"
+    validations:
+      required: true
+  - type: dropdown
+    id: who
+    attributes:
+      label: من أنت؟ (اختياري) | You are… (optional)
+      options:
+        - طالب ماجستير أو دكتوراه | Graduate student
+        - باحث أو عضو هيئة تدريس | Researcher / faculty
+        - طالب جامعي | Undergraduate
+        - غير ذلك | Other
+  - type: textarea
+    id: example
+    attributes:
+      label: مثال أو صورة (اختياري) | Example (optional)

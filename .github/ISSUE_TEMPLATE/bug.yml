@@ -1,0 +1,40 @@
+name: 🐞 بلاغ عن مشكلة | Bug report
+description: هل واجهت مشكلة في ورّاق؟ أخبرنا بها. | Something not working in Warraq?
+labels: ["مشكلة", "bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        شكراً لمساعدتك في تحسين ورّاق 🌿 هذه الصفحة عامة، فنرجو **ألا ترفع ملفات تحتوي على بيانات شخصية أو أجزاء من رسالتك** إلا إذا كنت توافق على نشرها للجميع.
+        Thanks for helping improve Warraq. This page is public, so please don't attach private files.
+  - type: dropdown
+    id: where
+    attributes:
+      label: أين تستخدم ورّاق؟ | Where?
+      options:
+        - برنامج ويندوز | Windows app
+        - نسخة المتصفح (getwarraq.org/app) | Web app
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: رقم الإصدار | Version
+      description: "تجده في الشريط السفلي، أو من قائمة ملف ← عن ورّاق. | Bottom bar, or File → About"
+      placeholder: "0.7.0"
+  - type: textarea
+    id: what
+    attributes:
+      label: ماذا حدث؟ | What happened?
+      description: اكتب الخطوات التي قمت بها بالترتيب، وما الذي كنت تتوقعه. | Steps, and what you expected.
+      placeholder: |
+        ١. فتحتُ ملف Word يحتوي على جدول…
+        ٢. ضغطتُ على…
+        ٣. ظهر…
+    validations:
+      required: true
+  - type: textarea
+    id: screens
+    attributes:
+      label: صور الشاشة (اختياري) | Screenshots (optional)
+      description: اسحب الصور إلى هنا. | Drag images here.
