@@ -1,5 +1,5 @@
 // ورّاق – برنامج الكمبيوتر (Electron): نافذة البرنامج، والملفات، والطباعة، وPDF النصّي
-const { app, BrowserWindow, ipcMain, dialog, protocol, net, Menu, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, protocol, net, Menu, shell, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
@@ -28,20 +28,47 @@ app.on('second-instance', (e, argv) => {
 });
 app.on('open-file', (e, p) => { e.preventDefault(); if (win) win.webContents.send('open-file', readForRenderer(p)); else pendingFile = p; });
 
+/* مقاس النافذة: دايماً جوه حدود الشاشة (حتى مع تكبير العرض ١٢٥٪ و١٥٠٪)، وبيفتكر آخر مقاس ومكان */
+const STATE_FILE = () => path.join(app.getPath('userData'), 'window-state.json');
+function loadWindowState() {
+  const wa = screen.getPrimaryDisplay().workArea;
+  const def = { width: Math.min(1400, wa.width - 40), height: Math.min(900, wa.height - 40), maximized: true };
+  try {
+    const st = JSON.parse(fs.readFileSync(STATE_FILE(), 'utf8'));
+    const b = st.bounds;
+    if (b && b.width >= 600 && b.height >= 400) {
+      const d = screen.getDisplayMatching(b).workArea; // الشاشة اللي النافذة كانت عليها، أو الأقرب ليها
+      const width = Math.min(b.width, d.width), height = Math.min(b.height, d.height);
+      const x = Math.min(Math.max(b.x, d.x), d.x + d.width - width), y = Math.min(Math.max(b.y, d.y), d.y + d.height - height);
+      return { x, y, width, height, maximized: !!st.maximized };
+    }
+  } catch (e) { /* أول تشغيل */ }
+  return def;
+}
+function saveWindowState() {
+  try { if (win && !win.isDestroyed()) fs.writeFileSync(STATE_FILE(), JSON.stringify({ bounds: win.getNormalBounds(), maximized: win.isMaximized() })); } catch (e) {}
+}
+
 function createWindow() {
+  const st = loadWindowState();
+  const wa = screen.getPrimaryDisplay().workArea;
   win = new BrowserWindow({
-    width: 1400, height: 900, minWidth: 900, minHeight: 600, show: false,
+    x: st.x, y: st.y, width: st.width, height: st.height, center: st.x === undefined,
+    minWidth: Math.min(900, wa.width), minHeight: Math.min(600, wa.height), show: false,
     title: 'ورّاق – Warraq', icon: path.join(__dirname, 'build', 'icon.png'), backgroundColor: '#E9E3D7',
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: true }
   });
   try { win.webContents.session.setSpellCheckerLanguages(['ar', 'en-US', 'fr']); } catch (e) {}
   win.loadURL('app://warraq/index.html');
-  win.once('ready-to-show', () => { win.maximize(); win.show(); });
+  win.once('ready-to-show', () => { if (st.maximized) win.maximize(); win.show(); });
+  win.on('resize', () => { clearTimeout(win._st); win._st = setTimeout(saveWindowState, 500); });
+  win.on('move', () => { clearTimeout(win._st); win._st = setTimeout(saveWindowState, 500); });
   // الروابط الخارجية تفتح في المتصفح
   win.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) shell.openExternal(url); return { action: 'deny' }; });
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('app://')) { e.preventDefault(); if (/^https?:/.test(url)) shell.openExternal(url); } });
   // تعديلات غير محفوظة عند الإغلاق
   win.on('close', async (e) => {
+    saveWindowState();
     if (allowClose || !dirty) return;
     e.preventDefault();
     const r = await dialog.showMessageBox(win, {
