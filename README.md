@@ -25,6 +25,11 @@ cd desktop && npm install && node prepare.js && npx electron-builder --win --x64
 - `pages.yml` ينشر الموقع (`site/`) ونسخة المتصفح (`app/`) على getwarraq.org عند أي تعديل.
 - `release.yml` يبني ملف التثبيت لويندوز عند إنشاء إصدار بعلامة مثل `v0.7.0`، ويرفقه بالإصدار مع ملفات التحديث التلقائي.
 
+## سياسة توقيع الكود (Code signing policy)
+توقيع الكود مجاني، تقدّمه [SignPath.io](https://signpath.io)، والشهادة صادرة عن [SignPath Foundation](https://signpath.org).
+التفاصيل وأدوار الفريق (المؤلفون والمراجعون والمعتمدون: [MidoMicro](https://github.com/MidoMicro)) في [صفحة سياسة توقيع الكود](https://getwarraq.org/code-signing.html).
+الخصوصية: لا ينقل البرنامج أي معلومات إلى أنظمة أخرى على الشبكة إلا بطلب المستخدم، والاتصال التلقائي الوحيد هو التحقق من التحديثات. اقرأ [سياسة الخصوصية](https://getwarraq.org/privacy.html).
+
 ## الترخيص
 ورّاق برنامج حرّ مفتوح المصدر بترخيص **GPL-3.0** (انظر ملف `LICENSE`).
 
@@ -40,3 +45,5 @@ cd desktop && npm install && node prepare.js && npx electron-builder --win --x64
 ---
 
 **Warraq** is an Arabic-first document editor for researchers and students: automatic footnotes and Ibid., APA/Vancouver, Quran verses from Tanzil, Word import/export, PDF, and one-click defense slides. Free and open source under GPL-3.0. Download at [getwarraq.org](https://getwarraq.org).
+
+**Code signing policy:** Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org). Details: [getwarraq.org/code-signing.html](https://getwarraq.org/code-signing.html).
