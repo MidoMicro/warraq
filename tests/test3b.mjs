@@ -56,6 +56,8 @@ check('New ref → full note', fns[2].includes('فهد الشمري') && fns[2].
 check('Earlier ref again → مرجع سابق', fns[3] === '(٤) نولز، مرجع سابق، ص ٣٠.', fns[3]);
 check('English ref full note keeps Latin digits', fns[4].includes('D. Randy Garrison') && fns[4].includes('p. 20'), fns[4]);
 check('English consecutive → Ibid.', fns[5] === '(٦) Ibid., p. 25.', fns[5]);
+const semi = await pg.evaluate(() => window.WQ_API.apaRef({ type: 'article', lang: '', authors: 'Smith, Anna; Lee, Brian', title: 'T', year: '2019', journal: 'J', volume: '', issue: '', pages: '' }));
+check('Semicolon separates authors', semi.startsWith('Smith, A. &amp; Lee, B.') || semi.startsWith('Smith, A. & Lee, B.'), semi);
 check('Markers numbered (١)…(٦)', (await pg.evaluate(() => Array.from(document.querySelectorAll('#page .wq-fn')).map((e) => e.textContent).join(' '))) === '(١) (٢) (٣) (٤) (٥) (٦)');
 
 // 3) حاشية نصية تكسر سلسلة "المرجع نفسه"
@@ -144,6 +146,8 @@ await pg.click('.tab:has-text("التوثيق")');
 await pg.waitForTimeout(300);
 await pg.screenshot({ path: 'tests/screenshot3b.png' });
 
+const ibidBg = await pg.evaluate(() => { const d = document.createElement('div'); d.className = 'pv-fns fn-zone'; d.innerHTML = '<span class="ibid">x</span>'; document.body.appendChild(d); const c = getComputedStyle(d.firstChild).backgroundColor; d.remove(); return c; });
+check('Ibid. highlight stays out of pages/PDF', ibidBg === 'rgba(0, 0, 0, 0)', ibidBg);
 check('No JavaScript errors', errors.length === 0, errors.join(' | '));
 await browser.close();
 const failed = results.filter((r) => !r.ok).length;
