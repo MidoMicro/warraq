@@ -41,10 +41,33 @@ ORT_TGZ = ("https://registry.npmjs.org/onnxruntime-web/-/onnxruntime-web-" + ORT
 ORT_FILES = ["ort.wasm.bundle.min.mjs", "ort-wasm-simd-threaded.wasm"]
 TK_COMMIT = "9b91c2dbc3dc4085dc4f77a9e250e5dd095d7d0c"
 TK_BASE = "https://raw.githubusercontent.com/mush42/libtashkeel/" + TK_COMMIT + "/"
-TK_FILES = {  # الملف المحلي: (المسار في المستودع، البصمة)
+HF = "https://huggingface.co/TigreGotico/"
+TK_FILES = {  # الملف المحلي: (الرابط الكامل أو المسار في مستودع libtashkeel، البصمة)
+    # libtashkeel — Musharraf Omer، رخصة MIT
     "model.onnx": ("crates/core/data/ort/model.onnx", "52c40d42ca094ff9ff07a091d0a1eafd7baa5cf2388e60a9cc89bacd8e5e955f"),
     "LICENSE.txt": ("LICENSE", "98dbc9a6a01badb391f2b64161742cb9cd8fcdc5cfc97486be0d49c47e98d1a8"),
+    # CATT-EO (Abjad AI، رخصة Apache-2.0)، نسخة ONNX int8 من TigreGotico
+    "catt.onnx": (HF + "catt-diacritizer/resolve/8ad763613cce96511c099e9943820be7cc80fbc2/catt_eo.int8.onnx",
+                  "59ba20d02a4b507a6b816a9b46b1230ba73d341c6731aa48da5de99388a39fca"),
+    "LICENSE-Apache-2.0.txt": ("https://raw.githubusercontent.com/abjadai/catt/8d5330499feb85f6625e6af632141ed2ed6065fd/LICENSE",
+                               "958c2bbc9350931476edb7d354dfca1e420333ff05bf3bfbc62bc047f6816b3d"),
+    # rawi-ensemble (TigreGotico، رخصة Apache-2.0)
+    "rawi.onnx": (HF + "rawi-ensemble/resolve/main/rawi_ensemble.int8.onnx",
+                  "429333d9825ca70d2482885547a61a41fdcd6f67d7b96bb09e852fdcf3bd266c"),
 }
+TK_NOTICE = """محركات التشكيل في ورّاق / Diacritization engines bundled with Warraq
+
+1) libtashkeel model — Copyright (c) 2023 Musharraf Omer — MIT License (LICENSE.txt)
+   https://github.com/mush42/libtashkeel
+2) CATT: Character-based Arabic Tashkeel Transformer (encoder-only) — Copyright Abjad AI
+   Apache License 2.0 (LICENSE-Apache-2.0.txt) — https://github.com/abjadai/catt
+   ONNX int8 export by TigreGotico — https://huggingface.co/TigreGotico/catt-diacritizer
+3) rawi-ensemble Arabic diacritizer — TigreGotico — Apache License 2.0 (LICENSE-Apache-2.0.txt)
+   https://huggingface.co/TigreGotico/rawi-ensemble
+4) onnxruntime-web — Copyright (c) Microsoft Corporation — MIT License (../ort/LICENSE.txt)
+
+The model files are redistributed unmodified. Warraq combines their outputs by majority vote.
+"""
 ORT_LICENSE = """MIT License
 
 Copyright (c) Microsoft Corporation
@@ -98,9 +121,10 @@ def fetch_tashkeel():
             p = tk_dir / local
             if p.exists() and _sha(p.read_bytes()) == sha:
                 continue
-            data = _get(TK_BASE + remote)
+            data = _get(remote if remote.startswith("https://") else TK_BASE + remote)
             assert _sha(data) == sha, "بصمة " + local + " غير مطابقة"
             p.write_bytes(data)
+        (tk_dir / "NOTICE.txt").write_text(TK_NOTICE, encoding="utf-8")
         return True
     except Exception as e:  # بدون إنترنت محلياً: البرنامج يشتغل والتشكيل يظهر "غير متاح"
         if os.environ.get("CI"):
