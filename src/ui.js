@@ -94,6 +94,7 @@ function renderRibbon() {
         rb(t('h3'), t('h3'), () => setBlock('h3'), 'outline', { block: 'H3' }), rb(t('normal'), t('normal'), () => setBlock('p'), 'outline', { block: 'P' }),
         rb(t('quote'), t('quote'), () => setBlock('blockquote'), 'outline', { block: 'BLOCKQUOTE' }),
         rb('⌫ ' + t('clear'), t('clear'), clearFormat), sep(),
+        rsel(t('tkLabel'), [['', 'ـَـ ' + t('tkLabel')], ['full', t('tkFull')], ['ends', t('tkEnds')], ['remove', t('tkRemove')], ['accept', t('tkAccept')]], '', (v) => { renderRibbon(); if (v) tashkeelSelection(v); }), sep(),
         el('span', { class: 'rlabel', html: escapeHtml(t('numerals')) }),
         rb('١٢٣', t('numerals') + ' ١٢٣', () => setNumerals('arabic'), 'special' + (s.numerals === 'arabic' ? ' on' : '')),
         rb('123', t('numerals') + ' 123', () => setNumerals('western'), 'special' + (s.numerals === 'western' ? ' on' : '')));
@@ -297,6 +298,7 @@ function boot() {
   initCiteEvents();
   initPagesEvents();
   initTableMenu();
+  initTashkeelEvents();
   restoreOrNew();
   applyPrefs();
   applyUiLang();
@@ -326,6 +328,6 @@ function boot() {
       window.claude.use('downloads').then((d) => { WQ.downloads = d || null; }).catch(() => {});
     }
   } catch (e) {}
-  window.WQ_API = { WQ, ayahText, matchQuran, poemHtml, exportPDF, exportPNG, drawPage, zipStore, paginate, setPagesView, PV: () => PV, takeSnapshot, restoreSnapshot, applyTemplate, docxToWarraq, loadQuran, insertAyah, searchQuran, openStart, refreshDerived, setCiteStyle, addCitation, addFootnote, insertBlock, renderCitations, apaRef, vanRef, serializeDoc, parseDoc, loadDocIntoEditor, sanitizeHtml, countWords, setDocLang, setNumerals, setBlock, insertTable, newDocModel };
+  window.WQ_API = { WQ, loadTashkeel, tashkeelSelection, ayahText, matchQuran, poemHtml, exportPDF, exportPNG, drawPage, zipStore, paginate, setPagesView, PV: () => PV, takeSnapshot, restoreSnapshot, applyTemplate, docxToWarraq, loadQuran, insertAyah, searchQuran, openStart, refreshDerived, setCiteStyle, addCitation, addFootnote, insertBlock, renderCitations, apaRef, vanRef, serializeDoc, parseDoc, loadDocIntoEditor, sanitizeHtml, countWords, setDocLang, setNumerals, setBlock, insertTable, newDocModel };
 }
 document.addEventListener('DOMContentLoaded', boot);

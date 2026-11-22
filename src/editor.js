@@ -296,6 +296,7 @@ function sanitizeHtml(html, trusted = false) {
       }
       if (trusted && n.style && n.style.length) { const st = cleanStyle(n.style); if (st) attrs += ' style="' + escapeHtml(st) + '"'; }
       if (tag === 'p' && /\bwq-bayt\b/.test(cls)) attrs = ' class="wq-bayt' + (/\bsingle\b/.test(cls) ? ' single' : '') + '" dir="rtl"' + attrs.replace(/ dir="[^"]*"/, '');
+      if (tag === 'span' && trusted && /\bwq-tk-q\b/.test(cls)) attrs = ' class="wq-tk-q" data-alt="' + escapeHtml(n.dataset.alt || '') + '"' + attrs;
       if (tag === 'span' && /\b(sadr|ajz)\b/.test(cls)) attrs = ' class="' + cls.match(/\b(sadr|ajz)\b/)[1] + '"' + attrs;
       if (tag === 'span' && !attrs) { out += walk(n); return; }
       out += '<' + tag + attrs + '>' + walk(n) + '</' + tag + '>';

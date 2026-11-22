@@ -260,3 +260,7 @@ body.focus .focus-exit{display:block}
 .qv-text del.qd-extra{color:#A32D2D;text-decoration:line-through;background:#FCEBEB}
 .qv-text ins.qd-miss{color:#3B6D11;text-decoration:none;background:#EAF3DE;border-bottom:1px solid #3B6D11}
 .qv-done{color:#3B6D11;font-size:13px}
+/* التشكيل: كلمات غير مؤكدة (في الكتابة فقط، لا تظهر في الطباعة وPDF) */
+#page .wq-tk-q{border-bottom:2px dotted #BA7517;cursor:pointer;background:#FAEEDA80}
+#page .wq-tk-q:hover{background:#FAEEDA}
+.tk-opt .tk-w{font-family:var(--doc-font);font-size:17px}

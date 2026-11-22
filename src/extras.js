@@ -442,7 +442,7 @@ function openAbout() {
     '<div class="start-title">' + E(t('appName')) + '</div><p class="wq-note">' + E(t('version')) + ' ' + APP_VERSION + ' (' + APP_STAGE + ') · ' + APP_UPDATED + '</p></div>' +
     '<p>' + E(t('aboutText')) + '</p><div id="aboutCredits"></div>',
     actions: [...(WQ.desktop && window.warraqDesktop.checkUpdate ? [{ label: t('checkUpdate'), cls: 'btn outline', keep: true, run: checkForUpdates }] : []), { label: t('close'), cls: 'btn' }],
-    onOpen: (m) => { $('#aboutCredits', m).innerHTML = (typeof quranCredits === 'function' ? quranCredits() : '') + '<p class="wq-note">' + E(t('pptCredit')) + '</p>' +
+    onOpen: (m) => { $('#aboutCredits', m).innerHTML = (typeof quranCredits === 'function' ? quranCredits() : '') + '<p class="wq-note">' + E(t('pptCredit')) + '</p><p class="wq-note">' + E(t('tkCredit')) + '</p>' +
       '<p class="wq-note">' + E(t('licenseLine')) + '</p><p class="wq-note" style="display:flex;gap:12px;flex-wrap:wrap">' +
       '<a href="' + WQ_LINKS.issues + '" target="_blank" rel="noopener">' + E(t('reportIssue')) + '</a>' +
       '<a href="' + WQ_LINKS.privacy + '" target="_blank" rel="noopener">' + E(t('privacy')) + '</a>' +
