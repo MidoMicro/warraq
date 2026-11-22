@@ -1,5 +1,7 @@
 /* ===== tashkeel: التشكيل الآلي بنظام الاقتراح والمراجعة =====
-   المحرك: نموذج libtashkeel (Musharraf Omer، رخصة MIT) يعمل محلياً بـ onnxruntime-web (رخصة MIT)، بدون إنترنت.
+   ثلاثة محركات تعمل محلياً بـ onnxruntime-web (رخصة MIT)، بدون إنترنت، ويُختار تشكيل كل كلمة بالتصويت:
+     L: libtashkeel (Musharraf Omer، MIT) — C: CATT (Abjad AI، Apache-2.0) — R: rawi-ensemble (TigreGotico، Apache-2.0)
+   على امتحان ٣٠ جملة: L وحده ٨٩٪ كلمات صحيحة، وC وR ٩٢٪، والتصويت ٩٥٪، وكل الأخطاء الباقية في كلمات اختلفت عليها المحركات.
    - يحترم الحركات التي كتبها المستخدم (تُرسل للنموذج كتلميحات).
    - لا يلمس الآيات المدرجة ولا ما بين ﴿ ﴾ ولا الحواشي والاستشهادات.
    - الكلمات التي ثقة النموذج فيها أقل من الحد يوضع تحتها خط، والضغط عليها يعرض البديل. */
@@ -7,7 +9,24 @@ const TK_CHARS = ' #!"()-./:[]«»،؛؟ءآأؤإئابةتثجحخدذرزسش
 const TK_DIAC = ['', 'ً', 'ٌ', 'ٍ', 'َ', 'ُ', 'ِ', 'ًّ', 'ٌّ', 'ٍّ', 'َّ', 'ُّ', 'ِّ', 'ْ', 'ّ']; // المعرّف = الموضع + 1
 const TK_HARAKAT = /[ً-ْ]/;
 const TK_NUM = /[0-9٠-٩]/;
-const TK_DOUBT = 0.75;
+/* حد الثقة الذي تحته تُعلَّم الكلمة للمراجعة (قِيس على ٣٠ جملة مشكولة يدوياً):
+   0.90 يلتقط ٢٢ من ٢٧ خطأ ويعلّم ٢٠٪ من الكلمات، و0.97 يلتقط ٢٧ من ٢٧ ويعلّم نحو ٣٠٪ */
+const TK_DOUBT = { full: 0.9, strict: 0.97, ends: 0.9 };
+const TK_SUN = 'تثدذرزسشصضطظلن';
+/* CATT: الحروف بترميز بكوالتر، والوسوم ← حركات */
+const CATT_LETTERS = ['<PAD>', '<BOS>', '<EOS>', ' ', '$', '&', "'", '*', '<', '>', 'A', 'D', 'E', 'H', 'S', 'T', 'Y', 'Z', 'b', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'x', 'y', 'z', '|', '}', '<MASK>'];
+const AR2BW = { 'ء': "'", 'آ': '|', 'أ': '>', 'ؤ': '&', 'إ': '<', 'ئ': '}', 'ا': 'A', 'ب': 'b', 'ة': 'p', 'ت': 't', 'ث': 'v', 'ج': 'j', 'ح': 'H', 'خ': 'x', 'د': 'd', 'ذ': '*', 'ر': 'r', 'ز': 'z', 'س': 's', 'ش': '$', 'ص': 'S', 'ض': 'D', 'ط': 'T', 'ظ': 'Z', 'ع': 'E', 'غ': 'g', 'ف': 'f', 'ق': 'q', 'ك': 'k', 'ل': 'l', 'م': 'm', 'ن': 'n', 'ه': 'h', 'و': 'w', 'ى': 'Y', 'ي': 'y' };
+const CATT_TAGS = ['', '', '', '', 'ُّ', 'ٌّ', 'َّ', 'ًّ', 'ِّ', 'ٍّ', 'ً', 'ٍ', 'ٌ', 'َ', 'ِ', 'ْ', 'ُ', 'ّ'];
+/* rawi: معرّفات الحروف بعد فك الهمزات (NFD)، والأصناف ← حركات (أُبقي منها الحركات فقط) */
+const RAWI_DIAC = ["", "", "", "", "", "", "", "", "", "", "ً", "ًَ", "ًّ", "ً", "ٌ", "ٌّ", "ٌ", "ٌ", "ٍ", "ٍّ", "ٍّ", "ٍ", "ٍ", "ٍ", "َ", "ََ", "ََّ", "ََّ", "ََ", "َُ", "َِ", "َّ", "َّ", "َّ", "َّ", "َ", "َ", "َ", "َ", "ُ", "ُُ", "ُِ", "ُّ", "ُّ", "ُ", "ُ", "ُ", "ِ", "ِِ", "ِِّ", "ِِ", "ِّ", "ِّ", "ِّ", "ِْ", "ِ", "ِ", "ِ", "ِ", "ّ", "ّّ", "ّْ", "ّ", "ْ", "ْْ", "ْ", "ْ", "", "", "", "", "", "", "", ""];
+const RAWI_CHARS = {" ":3,"#":6,"!":4,"\"":5,"(":11,")":12,"-":16,".":17,"/":18,":":29,"[":61,"]":63,"«":97,"»":99,"،":145,"؛":146,"؟":147,"ء":148,"ا":149,"ب":150,"ة":151,"ت":152,"ث":153,"ج":154,"ح":155,"خ":156,"د":157,"ذ":158,"ر":159,"ز":160,"س":161,"ش":162,"ص":163,"ض":164,"ط":165,"ظ":166,"ع":167,"غ":168,"ف":170,"ق":171,"ك":172,"ل":173,"م":174,"ن":175,"ه":176,"و":177,"ى":178,"ي":179};
+const RAWI_BASE = { 'آ': 'ا', 'أ': 'ا', 'إ': 'ا', 'ؤ': 'و', 'ئ': 'ي' };
+/* صيغة موحّدة للحركة: حركة واحدة ثم الشدة (لتتساوى مخرجات المحركات عند المقارنة) */
+function tkCanon(d) {
+  d = String(d || '').replace(/[^\u064B-\u0652]/g, '');
+  const sh = d.includes('ّ'), h = d.replace(/ّ/g, '').slice(-1);
+  return h + (sh ? 'ّ' : '');
+}
 const TK_SKIP = '.wq-ayah,.wq-ayah-ref,.wq-fn,.wq-cite,sup,.wq-toc,.wq-bib';
 let TK = null, _tkLoading = null;
 
@@ -20,8 +39,11 @@ async function loadTashkeel() {
     ort.env.wasm.proxy = false;
     const get = async (p) => { const r = await fetch(base + p); if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); };
     ort.env.wasm.wasmBinary = await get('ort/ort-wasm-simd-threaded.wasm');
-    const session = await ort.InferenceSession.create(new Uint8Array(await get('tashkeel/model.onnx')), { executionProviders: ['wasm'] });
-    TK = { ort, session };
+    const mk = async (f) => ort.InferenceSession.create(new Uint8Array(await get('tashkeel/' + f)), { executionProviders: ['wasm'] });
+    const session = await mk('model.onnx');
+    // المحركان الإضافيان اختياريان: لو تعذّر تحميل أحدهما يعمل التشكيل بما تيسّر
+    const opt = async (f) => { try { return await mk(f); } catch (e) { return null; } };
+    TK = { ort, session, catt: await opt('catt.onnx'), rawi: await opt('rawi.onnx') };
     return TK;
   })().catch((e) => { _tkLoading = null; throw e; });
   return _tkLoading;
@@ -54,6 +76,26 @@ async function tkRun(chars, hints) {
   return res;
 }
 
+/* CATT: نص بترميز بكوالتر (غير العربي مسافة) ← حركة لكل حرف */
+async function tkRunCatt(part) {
+  const { ort, catt } = TK, n = part.length;
+  const ids = new BigInt64Array(n);
+  part.forEach((m, i) => { const bw = AR2BW[m.it.ch]; ids[i] = BigInt(bw ? CATT_LETTERS.indexOf(bw) : 3); });
+  const out = await catt.run({ src: new ort.Tensor('int64', ids, [1, n]), src_mask: new ort.Tensor('bool', new Uint8Array(n * n).fill(1), [1, 1, n, n]) });
+  const lg = out[catt.outputNames[0]].data, T = 18, res = [];
+  for (let i = 0; i < n; i++) { let a = 0; for (let k = 1; k < T; k++) if (lg[i * T + k] > lg[i * T + a]) a = k; res.push(AR2BW[part[i].it.ch] ? tkCanon(CATT_TAGS[a]) : ''); }
+  return res;
+}
+/* rawi: الحروف بعد فك الهمزات ← صنف حركة لكل حرف */
+async function tkRunRawi(part) {
+  const { ort, rawi } = TK, n = part.length;
+  const ids = new BigInt64Array(n);
+  part.forEach((m, i) => { const c = TK_NUM.test(m.it.ch) ? '#' : (RAWI_BASE[m.it.ch] || m.it.ch); ids[i] = BigInt(RAWI_CHARS[c] || 1); });
+  const out = await rawi.run({ input: new ort.Tensor('int64', ids, [1, n]) });
+  const cls = out[rawi.outputNames[0]].data;
+  return Array.from({ length: n }, (_, i) => AR2BW[part[i].it.ch] ? tkCanon(RAWI_DIAC[Number(cls[i])] || '') : '');
+}
+
 /* الكتل التي يشملها التحديد (أو الفقرة الحالية) */
 function tkBlocks(range) {
   const sel = 'p,h1,h2,h3,li,td,th,blockquote';
@@ -78,6 +120,7 @@ async function tashkeelSelection(mode) {
     try { await loadTashkeel(); } catch (e) { toast(t('tkUnavailable')); return; }
   }
   takeSnapshot(t('tkSnap'));
+  if (mode !== 'remove') toast(t('tkWorking'));
   const whole = range.collapsed;
   let words = 0, doubt = 0, quranSkipped = false;
   for (const b of blocks) {
@@ -104,6 +147,7 @@ async function tashkeelSelection(mode) {
       const id = TK_NUM.test(it.ch) ? 2 : TK_CHARS.indexOf(it.ch) + 1;
       if (id > 0) { const m = { it, id, hint: '', extra: 0 }; model.push(m); it.m = m; }
     });
+    const doubtTh = TK_DOUBT[mode] || 0.9;
     if (mode !== 'remove' && model.length) {
       // تقطيع بالجمل حتى لا تطول المدخلات
       let start = 0;
@@ -112,7 +156,8 @@ async function tashkeelSelection(mode) {
         if (end < model.length) { for (let k = end - 1; k > start + 100; k--) if ('.؟!؛'.includes(model[k].it.ch)) { end = k + 1; break; } }
         const part = model.slice(start, end);
         const res = await tkRun(part.map((m) => m.id), part.map((m) => tkHintId(m.hint)));
-        part.forEach((m, k) => { m.r = res[k]; });
+        const rc = TK.catt ? await tkRunCatt(part) : null, rr = TK.rawi ? await tkRunRawi(part) : null;
+        part.forEach((m, k) => { m.r = res[k]; m.v = { L: tkCanon(res[k].d) }; if (rc) m.v.C = rc[k]; if (rr) m.v.R = rr[k]; });
         start = end;
       }
     }
@@ -128,16 +173,38 @@ async function tashkeelSelection(mode) {
       const letters = wd.items.filter((it) => it.inRange);
       if (!letters.length) return;
       words++;
-      letters.forEach((it, idx) => {
+      if (mode === 'remove') { letters.forEach((it) => { it.newDiac = ''; }); return; }
+      const engines = wd.items[0].m.v ? Object.keys(wd.items[0].m.v) : [];
+      if (engines.length >= 2) {
+        // التصويت: لكل محرك تشكيل الكلمة كاملة (حركة المستخدم إن وُجدت تُفرض على الجميع)
+        const last = wd.items.length - 1;
+        const cand = {}; engines.forEach((e) => { cand[e] = tkRulesOn(wd.items, wd.items.map((it) => it.m.hint ? tkCanon(it.m.hint) : (it.m.v[e] || ''))); });
+        const keyOf = (e) => mode === 'ends' ? cand[e][last] : cand[e].join('|');
+        const count = {}; engines.forEach((e) => { const k = keyOf(e); count[k] = (count[k] || 0) + 1; });
+        const order = ['C', 'R', 'L'].filter((e) => engines.includes(e));
+        const win = order.reduce((a, e) => count[keyOf(e)] > count[keyOf(a)] ? e : a, order[0]);
+        const top = count[keyOf(win)], unanimous = top === engines.length;
+        wd.items.forEach((it, k) => { if (!it.inRange) return; it.newDiac = (mode === 'ends' && k !== last) ? null : cand[win][k]; });
+        tkSpellingRules(wd.items);
+        // المراجعة: الدقيقة تعلّم أي خلاف، والعادية تعلّم غياب الأغلبية أو مخالفة CATT
+        const doubtful = mode === 'strict' ? !unanimous : (top === 1 || (engines.includes('C') && keyOf('C') !== keyOf(win)));
+        if (doubtful) {
+          const alt = order.find((e) => keyOf(e) !== keyOf(win));
+          if (alt) { const tmp = wd.items.map((it, k) => ({ it, d: (mode === 'ends' && k !== last) ? null : cand[alt][k] })); wd.altStr = tkWordString(tmp); }
+          wd.doubt = wd.items[last]; doubt++;
+        }
+        return;
+      }
+      // محرك واحد فقط: المراجعة بثقة النموذج
+      letters.forEach((it) => {
         const isLast = it === wd.items[wd.items.length - 1];
-        if (mode === 'remove') it.newDiac = '';
-        else if (mode === 'ends' && !isLast) it.newDiac = null; // يبقى كما هو
+        if (mode === 'ends' && !isLast) it.newDiac = null; // يبقى كما هو
         else it.newDiac = it.m.r ? it.m.r.d : '';
       });
-      if (mode === 'remove') return;
+      tkSpellingRules(wd.items);
       const scored = letters.filter((it) => it.newDiac !== null && it.m.r);
       const worst = scored.reduce((a, it) => (!a || it.m.r.conf < a.m.r.conf) ? it : a, null);
-      if (worst && worst.m.r.conf < TK_DOUBT) { wd.doubt = worst; doubt++; }
+      if (worst && worst.m.r.conf < doubtTh) { wd.doubt = worst; doubt++; }
     });
     // إعادة كتابة عقد النص
     const byNode = new Map();
@@ -164,9 +231,40 @@ async function tashkeelSelection(mode) {
   if (mode === 'remove') toast(t('tkRemoved').replace('{n}', fmtNum(words)));
   else toast(t('tkDone').replace('{n}', fmtNum(words)).replace('{m}', fmtNum(doubt)) + (quranSkipped ? ' ' + t('tkSkippedQuran') : ''));
 }
+/* قواعد إملائية ثابتة تكمّل النموذج (لا تغيّر ما قرره، تملأ الفراغ فقط):
+   ١) الحرف الذي قبل ألف المد بلا حركة ← فتحة (صَباحًا ← صَبَاحًا)، إلا ألف «ال» بعد حرف جر أو عطف (بِالْ)
+   ٢) لام «ال» القمرية بلا حركة ← سكون (الأَنْدَلُس ← الْأَنْدَلُس)
+   ٣) إ بلا حركة ← كسرة */
+function tkSpellingRules(w) {
+  const set = (it, d) => { if (it && it.inRange && it.newDiac === '') it.newDiac = d; };
+  w.forEach((it) => { if (it.ch === 'إ') set(it, 'ِ'); }); // ٣) الهمزة تحت الألف كسرة دائماً (إِلَى، إِنَّ)
+  for (let k = 0; k < w.length - 1; k++) {
+    if (w[k + 1].ch !== 'ا') continue;
+    // ألف «ال» بعد حرف (بِالْ، كَالْ، وَالْ) أو حرفين (وَبِالْ، فَلِلْ…) ألف وصل لا يُفتح ما قبلها
+    const article = (k === 0 && w.length > 3 && 'وفبكل'.includes(w[0].ch) && w[2].ch === 'ل') ||
+      (k === 1 && w.length > 4 && 'وف'.includes(w[0].ch) && 'بكل'.includes(w[1].ch) && w[3].ch === 'ل');
+    if (!article && w[k].ch !== 'ا') set(w[k], 'َ');
+  }
+  let a = -1;
+  if (w.length > 2 && w[0].ch === 'ا' && w[1].ch === 'ل') a = 1;
+  else if (w.length > 3 && 'وفبكل'.includes(w[0].ch) && w[1].ch === 'ا' && w[2].ch === 'ل') a = 2;
+  if (a > 0) {
+    const nx = w[a + 1], nd = nx ? (nx.newDiac !== null && nx.newDiac !== undefined ? nx.newDiac : nx.m.hint) : '';
+    if (nx && !TK_SUN.includes(nx.ch) && !(nd || '').includes('ّ')) set(w[a], 'ْ');
+  }
+}
+/* نفس القواعد الإملائية على تشكيل مرشّح (قبل المقارنة، حتى لا يُعدّ نقص كسرة إ أو فتحة ما قبل الألف خلافاً) */
+function tkRulesOn(items, diacs) {
+  const w = items.map((it, k) => ({ ch: it.ch, inRange: true, newDiac: diacs[k], m: it.m }));
+  tkSpellingRules(w);
+  return w.map((x) => x.newDiac);
+}
 function tkInRange(range, node, i) { try { return range.comparePoint(node, i) === 0 && !(range.endContainer === node && range.endOffset === i); } catch (e) { return false; } }
-/* البديل: نفس الكلمة مع الحركة الثانية في أضعف حرف */
+/* الكلمة بحركات معيّنة (null = كما كتبها المستخدم) */
+function tkWordString(list) { return list.map(({ it, d }) => it.ch + (d === null || d === undefined ? (it.m.hint || '') : d)).join(''); }
+/* البديل: تشكيل المحرك المخالف، أو الحركة الثانية في أضعف حرف (محرك واحد) */
 function tkAltWord(wd) {
+  if (wd.altStr) return wd.altStr;
   let s = '';
   wd.items.forEach((it) => {
     s += it.ch;
