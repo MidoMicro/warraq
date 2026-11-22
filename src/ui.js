@@ -101,7 +101,10 @@ function renderRibbon() {
     case 'insert':
       add(rb('▦ ' + t('table'), t('table'), openTableDialog), rb('🖼 ' + t('image'), t('image'), () => { saveRange(); $('#fileImage').value = ''; $('#fileImage').click(); }),
         sep(), rb('⤓ ' + t('pageBreak'), t('pageBreak'), insertPageBreak), rb('― ' + t('hr'), t('hr'), () => insertHtml('<hr><p dir="auto"><br></p>')),
-        sep(), rb('« »', t('quotes'), insertQuotes, 'special'), rb('﴿ ﴾ ' + t('insertAyah'), t('insertAyah'), openAyahDialog, 'special'));
+        sep(), rb('« »', t('quotes'), insertQuotes, 'special'), rb('﴿ ﴾ ' + t('insertAyah'), t('insertAyah'), openAyahDialog, 'special'),
+        rb('✓ ' + t('verifyQuran'), t('verifyQuranT'), () => verifyQuranQuotes(false), 'special'),
+        rsel(t('honorifics'), [['', 'ﷺ ' + t('honorifics')]].concat(HONORIFICS.map((x) => [x, x])), '', (v) => { insertHonorific(v); renderRibbon(); }),
+        rb('☙ ' + t('poem'), t('poemTitle'), openPoemDialog));
       break;
     case 'table': {
       const c = curCell(), tb = c && c.closest('table');
@@ -323,6 +326,6 @@ function boot() {
       window.claude.use('downloads').then((d) => { WQ.downloads = d || null; }).catch(() => {});
     }
   } catch (e) {}
-  window.WQ_API = { WQ, exportPDF, exportPNG, drawPage, zipStore, paginate, setPagesView, PV: () => PV, takeSnapshot, restoreSnapshot, applyTemplate, docxToWarraq, loadQuran, insertAyah, searchQuran, openStart, refreshDerived, setCiteStyle, addCitation, addFootnote, insertBlock, renderCitations, apaRef, vanRef, serializeDoc, parseDoc, loadDocIntoEditor, sanitizeHtml, countWords, setDocLang, setNumerals, setBlock, insertTable, newDocModel };
+  window.WQ_API = { WQ, ayahText, matchQuran, poemHtml, exportPDF, exportPNG, drawPage, zipStore, paginate, setPagesView, PV: () => PV, takeSnapshot, restoreSnapshot, applyTemplate, docxToWarraq, loadQuran, insertAyah, searchQuran, openStart, refreshDerived, setCiteStyle, addCitation, addFootnote, insertBlock, renderCitations, apaRef, vanRef, serializeDoc, parseDoc, loadDocIntoEditor, sanitizeHtml, countWords, setDocLang, setNumerals, setBlock, insertTable, newDocModel };
 }
 document.addEventListener('DOMContentLoaded', boot);

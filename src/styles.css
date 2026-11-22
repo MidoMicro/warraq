@@ -129,7 +129,7 @@ body.hide-nav.hide-ref .workspace{grid-template-columns:minmax(0,1fr)}
 .fn-item{margin:0 0 .2em;cursor:pointer;text-align:start}
 .fn-item:hover{background:#FAEEDA}
 .fn-num{color:var(--accent)}
-.ibid{background:#FAEEDA;color:#854F0B;border-radius:3px;padding:0 3px}
+#fnZone .ibid{background:#FAEEDA;color:#854F0B;border-radius:3px;padding:0 3px}
 .wq-toc,.wq-bib{border:1px dashed #B8732E88;border-radius:6px;padding:.4em .8em;margin:.6em 0;cursor:default;user-select:none}
 .wq-block-title{font-size:1.3em;color:var(--primary);font-weight:700;margin:.2em 0 .4em}
 .wq-block-sub{font-weight:700;color:#33504F;margin:.6em 0 .2em}
@@ -247,3 +247,16 @@ body.focus .focus-exit{display:block}
   .wq-toc,.wq-bib{border:none}
   #app{height:auto}
 }
+
+/* أبيات الشعر: صدر وعجز متقابلان، وكل شطر مضبوط على عرضه */
+.page p.wq-bayt{display:flex;justify-content:center;gap:3em;text-indent:0;margin:0 0 .15em;text-align:center}
+.page p.wq-bayt.single{display:block}
+.wq-bayt .sadr,.wq-bayt .ajz{flex:1 1 0;min-width:0;text-align:justify;text-align-last:justify}
+/* التحقق من الآيات */
+.qv-sum{font-weight:700;color:var(--primary)}
+.qv-item{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px;background:#fff}
+.qv-item.ok{border-inline-start:4px solid #3B6D11}.qv-item.diff{border-inline-start:4px solid #BA7517}.qv-item.no{border-inline-start:4px solid #A32D2D}
+.qv-text{font-family:'Amiri Quran','Amiri',serif;font-size:17px;line-height:2;margin:4px 0 6px}
+.qv-text del.qd-extra{color:#A32D2D;text-decoration:line-through;background:#FCEBEB}
+.qv-text ins.qd-miss{color:#3B6D11;text-decoration:none;background:#EAF3DE;border-bottom:1px solid #3B6D11}
+.qv-done{color:#3B6D11;font-size:13px}

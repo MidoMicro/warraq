@@ -35,7 +35,8 @@ function searchQuran(q, max = 30) {
       if (QURAN_IDX[s][a].includes(n)) out.push([s + 1, a + 1]);
   return out;
 }
-const ayahText = (s, a, b) => QURAN.view[s - 1].slice(a - 1, b).join(' ');
+/* n = ترقيم الآيات داخل النص بعلامة نهاية الآية ۝ (يرسمها خط أميري قرآن زخرفياً حول الرقم) */
+const ayahText = (s, a, b, n) => QURAN.view[s - 1].slice(a - 1, b).map((x, i) => n ? x + '\u00A0\u06DD' + toArabicDigits(String(a + i)) : x).join(' ');
 function suraLabel(s) { const x = QURAN.suras[s - 1]; return WQ.doc.settings.lang === 'ar' ? x.name : x.tname; }
 function ayahRef(s, a, b) {
   const ar = WQ.doc.settings.lang === 'ar';
@@ -48,11 +49,11 @@ function ayahFootText(s, a, b) {
   if (ar) return 'سورة ' + suraLabel(s) + '، ' + (a === b ? 'الآية ' + toArabicDigits(String(a)) : 'الآيات ' + toArabicDigits(a + '-' + b)) + '.';
   return "Qur'an, " + suraLabel(s) + ' ' + s + ':' + (a === b ? a : a + '-' + b) + '.';
 }
-function ayahSpan(s, a, b) {
-  return '<span class="wq-ayah" data-s="' + s + '" data-a="' + a + '" data-b="' + b + '" contenteditable="false" dir="rtl" lang="ar">﴿' + E(ayahText(s, a, b)) + '﴾</span>';
+function ayahSpan(s, a, b, n) {
+  return '<span class="wq-ayah" data-s="' + s + '" data-a="' + a + '" data-b="' + b + '"' + (n ? ' data-n="1"' : '') + ' contenteditable="false" dir="rtl" lang="ar">﴿' + E(ayahText(s, a, b, n)) + '﴾</span>';
 }
 function insertAyah(s, a, b, opt) {
-  let html = ayahSpan(s, a, b);
+  let html = ayahSpan(s, a, b, opt.numbered);
   if (opt.where === 'text') html += ' <span class="wq-ayah-ref" contenteditable="false">[' + E(ayahRef(s, a, b)) + ']</span>';
   if (opt.block) {
     insertHtml('<p dir="rtl" style="text-align: center">' + html + '</p><p dir="auto"><br></p>');
@@ -85,25 +86,28 @@ async function openAyahDialog() {
     '<div><label>' + E(t('fromAyah')) + '</label><input id="qFrom" type="number" min="1" value="1"></div><div><label>' + E(t('toAyah')) + '</label><input id="qTo" type="number" min="1" value="1"></div></div>' +
     '<label>' + E(t('preview')) + '</label><div class="preview-box ayah-prev" id="qPrev" dir="rtl"></div>' +
     '<div class="chips"><button class="chip on" data-w="text">' + E(t('refInText')) + '</button><button class="chip" data-w="note">' + E(t('refInNote')) + '</button>' +
-    '<label style="display:flex;gap:6px;align-items:center;margin:0 8px"><input id="qBlock" type="checkbox" checked style="width:auto;margin:0">' + E(t('ownLine')) + '</label></div>' +
+    '<label style="display:flex;gap:6px;align-items:center;margin:0 8px"><input id="qBlock" type="checkbox" checked style="width:auto;margin:0">' + E(t('ownLine')) + '</label>' +
+    '<label style="display:flex;gap:6px;align-items:center;margin:0 8px"><input id="qNum" type="checkbox" style="width:auto;margin:0">' + E(t('ayahNumbers')) + '</label>' +
+    '<button class="chip" id="qWhole" type="button">' + E(t('wholeSura')) + '</button></div>' +
     quranCredits();
   let where = 'text';
   showModal({ title: t('insertAyah'), body, wide: true,
-    actions: [{ label: t('cancel') }, { label: t('insert'), cls: 'btn', run: (m) => { restoreRange(); insertAyah(sel.s, sel.a, sel.b, { where, block: $('#qBlock', m).checked }); } }],
+    actions: [{ label: t('cancel') }, { label: t('insert'), cls: 'btn', run: (m) => { restoreRange(); insertAyah(sel.s, sel.a, sel.b, { where, block: $('#qBlock', m).checked, numbered: $('#qNum', m).checked }); } }],
     onOpen: (m) => {
       const S = $('#qSura', m), F = $('#qFrom', m), T = $('#qTo', m);
       const upd = () => {
         const s = +S.value, max = QURAN.suras[s - 1].ayas;
         let a = Math.min(max, Math.max(1, +F.value || 1)), b = Math.min(max, Math.max(a, +T.value || a));
-        if (b - a > 19) b = a + 19;
         F.max = T.max = max; sel = { s, a, b };
-        $('#qPrev', m).innerHTML = '<span class="wq-ayah">﴿' + E(ayahText(s, a, b)) + '﴾</span> <span class="wq-ayah-ref">[' + E(ayahRef(s, a, b)) + ']</span>';
+        $('#qPrev', m).innerHTML = '<span class="wq-ayah">﴿' + E(ayahText(s, a, b, $('#qNum', m).checked)) + '﴾</span> <span class="wq-ayah-ref">[' + E(ayahRef(s, a, b)) + ']</span>';
       };
       const pick = (s, a) => { S.value = s; F.value = a; T.value = a; upd(); };
       S.onchange = () => { F.value = 1; T.value = 1; upd(); };
       F.oninput = () => { if (+T.value < +F.value) T.value = F.value; upd(); };
       T.oninput = upd;
-      $$('.chip', m).forEach((c) => c.onclick = () => { where = c.dataset.w; $$('.chip', m).forEach((x) => x.classList.toggle('on', x === c)); });
+      $$('.chip[data-w]', m).forEach((c) => c.onclick = () => { where = c.dataset.w; $$('.chip[data-w]', m).forEach((x) => x.classList.toggle('on', x === c)); });
+      $('#qNum', m).onchange = upd;
+      $('#qWhole', m).onclick = () => { F.value = 1; T.value = QURAN.suras[+S.value - 1].ayas; upd(); };
       let tmr;
       $('#qSearch', m).oninput = (e) => {
         clearTimeout(tmr); tmr = setTimeout(() => {
@@ -127,7 +131,7 @@ async function verifyAyat() {
   spans.forEach((sp) => {
     const s = +sp.dataset.s, a = +sp.dataset.a, b = +sp.dataset.b;
     if (!(s >= 1 && s <= 114) || !(a >= 1) || !(b >= a) || b > QURAN.suras[s - 1].ayas) { sp.classList.add('ayah-bad'); return; }
-    const want = '﴿' + ayahText(s, a, b) + '﴾';
+    const want = '﴿' + ayahText(s, a, b, sp.dataset.n === '1') + '﴾';
     if (sp.textContent !== want) sp.textContent = want;
   });
 }

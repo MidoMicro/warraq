@@ -259,7 +259,7 @@ function sanitizeHtml(html, trusted = false) {
       // عناصر ور\u0651اق الخاصة: ت\u064Fقبل من ملفات ور\u0651اق فقط
       if (/\bwq-ayah\b/.test(cls) && !cls.includes('wq-ayah-ref')) {
         const ok = ['s', 'a', 'b'].every((k) => /^\d{1,3}$/.test(n.dataset[k] || ''));
-        if (trusted && ok) out += '<span class="wq-ayah" data-s="' + n.dataset.s + '" data-a="' + n.dataset.a + '" data-b="' + n.dataset.b + '" contenteditable="false" dir="rtl" lang="ar">' + escapeHtml(n.textContent) + '</span>';
+        if (trusted && ok) out += '<span class="wq-ayah" data-s="' + n.dataset.s + '" data-a="' + n.dataset.a + '" data-b="' + n.dataset.b + '"' + (n.dataset.n === '1' ? ' data-n="1"' : '') + ' contenteditable="false" dir="rtl" lang="ar">' + escapeHtml(n.textContent) + '</span>';
         else out += escapeHtml(n.textContent);
         return;
       }
@@ -267,7 +267,7 @@ function sanitizeHtml(html, trusted = false) {
       if (/\bwq-(fn|cite|toc|bib)\b/.test(cls)) {
         if (!trusted) return;
         if (cls.includes('wq-fn') && ID_RE.test(n.dataset.fn || '')) out += '<sup class="wq-fn" data-fn="' + n.dataset.fn + '" contenteditable="false">*</sup>';
-        else if (cls.includes('wq-cite') && ID_RE.test(n.dataset.ref || '')) out += '<span class="wq-cite" data-ref="' + n.dataset.ref + '" data-page="' + escapeHtml(n.dataset.page || '') + '" contenteditable="false">[*]</span>';
+        else if (cls.includes('wq-cite') && ID_RE.test(n.dataset.ref || '')) out += '<span class="wq-cite" data-ref="' + n.dataset.ref + '" data-page="' + escapeHtml(n.dataset.page || '') + '" data-vol="' + escapeHtml(n.dataset.vol || '') + '" contenteditable="false">[*]</span>';
         else if (cls.includes('wq-toc')) out += '<div class="wq-toc" contenteditable="false"></div>';
         else if (cls.includes('wq-bib')) out += '<div class="wq-bib" contenteditable="false"></div>';
         return;
@@ -295,6 +295,8 @@ function sanitizeHtml(html, trusted = false) {
         attrs += ' dir="' + (trusted && (d === 'rtl' || d === 'ltr') ? d : 'auto') + '"';
       }
       if (trusted && n.style && n.style.length) { const st = cleanStyle(n.style); if (st) attrs += ' style="' + escapeHtml(st) + '"'; }
+      if (tag === 'p' && /\bwq-bayt\b/.test(cls)) attrs = ' class="wq-bayt' + (/\bsingle\b/.test(cls) ? ' single' : '') + '" dir="rtl"' + attrs.replace(/ dir="[^"]*"/, '');
+      if (tag === 'span' && /\b(sadr|ajz)\b/.test(cls)) attrs = ' class="' + cls.match(/\b(sadr|ajz)\b/)[1] + '"' + attrs;
       if (tag === 'span' && !attrs) { out += walk(n); return; }
       out += '<' + tag + attrs + '>' + walk(n) + '</' + tag + '>';
     });

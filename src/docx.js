@@ -128,6 +128,11 @@ function docxBuilder() {
     else if (ta === 'left') pr += '<w:jc w:val="' + (rtl ? 'end' : 'start') + '"/>';
     return '<w:p>' + (pr ? '<w:pPr>' + pr + '</w:pPr>' : '') + inline(e, Object.assign({ rtlPara: rtl }, f || {})) + '</w:p>';
   }
+  /* محاذاة واحدة في آخر خصائص الفقرة (ترتيب Word: bidi قبل jc) */
+  function withJc(px, v) {
+    px = px.replace(/<w:jc w:val="[^"]*"\/>/g, '');
+    return px.includes('<w:pPr>') ? px.replace('</w:pPr>', '<w:jc w:val="' + v + '"/></w:pPr>') : px.replace('<w:p>', '<w:p><w:pPr><w:jc w:val="' + v + '"/></w:pPr>');
+  }
   function newNum(ordered) {
     const id = st.nums.length + 1; st.nums.push(ordered ? 2 : 1); return id;
   }
@@ -135,6 +140,15 @@ function docxBuilder() {
   function block(e) {
     const tag = e.tagName;
     if (/^H[1-3]$/.test(tag)) return para(e, '<w:pStyle w:val="Heading' + tag[1] + '"/>');
+    if (tag === 'P' && e.classList.contains('wq-bayt')) {
+      // البيت في Word: جدول بلا حدود بعمودين، وكل شطر موزّع على عرض خليته
+      const halves = e.classList.contains('single') ? null : [e.querySelector('.sadr'), e.querySelector('.ajz')];
+      if (!halves || !halves[0] || !halves[1]) return withJc(para(e), 'center');
+      const w = Math.floor(cw * 0.44), gap = cw - 2 * w;
+      const cell = (h, cw2) => '<w:tc><w:tcPr><w:tcW w:w="' + cw2 + '" w:type="dxa"/></w:tcPr>' + (h ? withJc(para(h), 'distribute') : '<w:p/>') + '</w:tc>';
+      return '<w:tbl><w:tblPr><w:bidiVisual/><w:tblW w:w="' + cw + '" w:type="dxa"/><w:jc w:val="center"/><w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders></w:tblPr>' +
+        '<w:tblGrid><w:gridCol w:w="' + w + '"/><w:gridCol w:w="' + gap + '"/><w:gridCol w:w="' + w + '"/></w:tblGrid><w:tr>' + cell(halves[0], w) + cell(null, gap) + cell(halves[1], w) + '</w:tr></w:tbl>';
+    }
     if (tag === 'P') return para(e);
     if (tag === 'BLOCKQUOTE') return para(e, '<w:pStyle w:val="Quote"/>');
     if (tag === 'HR') return e.classList.contains('wq-pagebreak') ? '<w:p><w:r><w:br w:type="page"/></w:r></w:p>' : '<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="999999"/></w:pBdr></w:pPr></w:p>';
