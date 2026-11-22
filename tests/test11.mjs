@@ -23,7 +23,7 @@ const run = (mode, sel) => pg.evaluate(async ([m, s]) => {
 // 1) الشريط
 await pg.click('.tab:has-text("الرئيسية")');
 const opts = await pg.evaluate(() => Array.from(document.querySelectorAll('select[title="التشكيل"] option')).map((o) => o.value));
-check('Home ribbon has Diacritics menu (full/ends/remove/accept)', ['full', 'ends', 'remove', 'accept'].every((v) => opts.includes(v)), opts.join(','));
+check('Home ribbon has Diacritics menu (full/strict/ends/remove/accept)', ['full', 'strict', 'ends', 'remove', 'accept'].every((v) => opts.includes(v)), opts.join(','));
 
 // 2) تشكيل كامل للمستند مع حماية الآيات والحواشي
 await load('<p>قال ابن خلدون في مقدمته إن العلم والتعليم طبيعي في العمران البشري<sup class="wq-fn" data-fn="f1" contenteditable="false">*</sup></p>' +
@@ -38,7 +38,8 @@ check('Footnote marker kept', r.html.includes('class="wq-fn"'));
 check('Toast reports words, doubts and Quran skip', /شُكّلت/.test(r.toast) && r.toast.includes('القرآنية'), r.toast);
 const q = await pg.evaluate(() => Array.from(document.querySelectorAll('#page .wq-tk-q')).map((s) => [s.textContent, s.dataset.alt]));
 check('Uncertain words underlined with an alternative', q.length >= 1 && q.every(([a, b]) => b && b !== a), JSON.stringify(q));
-check('Known error العَلم → alternative العِلم offered', q.some(([a, b]) => a.replace(HAR, '') === 'العلم' && b === 'الْعِلْمَ'), JSON.stringify(q));
+check('Vote fixes the single-engine error (الْعِلْمَ)', r.ps[0].includes('الْعِلْمَ'), r.ps[0]);
+check('No false doubt from missing kasra under إ (إِنَّ not underlined)', !q.some(([a]) => a.replace(HAR, '') === 'إن'), JSON.stringify(q));
 check('Snapshot taken before diacritics', await pg.evaluate(() => window.WQ_API.WQ.doc.snapshots.some((s) => (s.label || '').includes('قبل التشكيل'))));
 
 // 3) قائمة المراجعة
@@ -59,7 +60,7 @@ await pg.evaluate(() => window.WQ_API.setPagesView(false));
 const [dl] = await Promise.all([pg.waitForEvent('download'), pg.evaluate(() => exportDocx())]);
 await dl.saveAs('/tmp/t11.docx');
 const xml = execFileSync('unzip', ['-p', '/tmp/t11.docx', 'word/document.xml']).toString();
-check('Word export carries the vocalized text', xml.includes('قَالَ') && xml.includes('خَلْدُونَ'));
+check('Word export carries the vocalized text', xml.includes('ابْنُ') && xml.includes('مُقَدِّمَتِهِ'), (xml.match(/[\u0600-\u06FF][^<]{0,40}/g) || []).slice(0, 6).join(' | '));
 // اعتماد الكل
 r = await run('accept', { p: 0 });
 check('Accept (cursor only) clears all marks in the document', !r.html.includes('wq-tk-q'), r.toast);
@@ -87,7 +88,22 @@ check('Remove diacritics', r.ps[0] === 'قال ابن خلدون', r.ps[0]);
 
 // 8) عن ورّاق: ذكر المحرك ورخصته
 await pg.click('.tab:has-text("ملف")'); await pg.click('.rb:has-text("عن ورّاق")'); await pg.waitForTimeout(200);
-check('About credits libtashkeel + onnxruntime-web (MIT)', await pg.evaluate(() => { const x = document.querySelector('.modal').textContent; return x.includes('libtashkeel') && x.includes('onnxruntime-web'); }));
+check('About credits libtashkeel + CATT + rawi + onnxruntime-web', await pg.evaluate(() => { const x = document.querySelector('.modal').textContent; return ['libtashkeel', 'CATT', 'rawi', 'onnxruntime-web', 'Apache-2.0'].every((k) => x.includes(k)); }));
+check('Three engines loaded (vote active)', await pg.evaluate(async () => { const T = await window.WQ_API.loadTashkeel(); return !!(T.session && T.catt && T.rawi); }));
+
+
+// 9) القواعد الإملائية: فتحة قبل ألف المد، وسكون لام «ال» القمرية، وألف «بِالْ» لا يُفتح ما قبلها
+await load('<p>صباحا</p><p>قال الأندلس بالفقه</p>');
+r = await run('full', 'all');
+check('Spelling rule: fatha before alif (صَبَا…)', r.ps[0].startsWith('صَبَا'), r.ps[0]);
+check('Spelling rule: sukun on moon-letter article lam', /الْأَنْدَل/.test(r.ps[1]), r.ps[1]);
+check('Spelling rule: prefix+article keeps بِالْ (no fatha on ب)', /بِالْفِقْه/.test(r.ps[1]) && /^قَالَ/.test(r.ps[1]), r.ps[1]);
+// 10) المراجعة الدقيقة تعلّم كلمات أكثر من الكاملة
+await load('<p>تعلم الطفل القراءة والكتابة في سن مبكرة وأعطى الأستاذ الطالب كتابا</p>');
+const nFull = (await run('full', 'all')).html.split('wq-tk-q').length - 1;
+await load('<p>تعلم الطفل القراءة والكتابة في سن مبكرة وأعطى الأستاذ الطالب كتابا</p>');
+const nStrict = (await run('strict', 'all')).html.split('wq-tk-q').length - 1;
+check('Detailed review marks more words than full', nStrict > nFull && nFull > 0, nFull + ' < ' + nStrict);
 
 check('No JavaScript errors', errs.length === 0, errs.join(' | '));
 await browser.close();
