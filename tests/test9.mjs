@@ -10,7 +10,7 @@ const errs = [];
   pg.on('pageerror', (e) => errs.push(String(e)));
   await pg.goto('http://localhost:8765/index.html'); await pg.evaluate(() => localStorage.clear()); await pg.reload(); await pg.waitForTimeout(300);
   await pg.evaluate(() => document.querySelectorAll('.start-ov').forEach((x) => x.remove()));
-  check('Version 0.8.2 shown', (await pg.textContent('.app-ver')).includes('0.8.2'));
+  check('Version 0.9.0 shown', (await pg.textContent('.app-ver')).includes('0.9.0'));
   await pg.click('.tab:has-text("ملف")');
   check('File tab has "report a problem"', await pg.$('.rb:has-text("بلّغ عن مشكلة")') !== null);
   const [popup] = await Promise.all([pg.waitForEvent('popup'), pg.click('.rb:has-text("بلّغ عن مشكلة")')]);
