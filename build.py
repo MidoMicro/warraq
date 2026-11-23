@@ -270,7 +270,7 @@ def fetch_hadith():
             assert _sha(data) == sha, "بصمة " + local + " غير مطابقة"
             p.write_bytes(data)
         n = hd_convert(src, DIST / "hadith")
-        print(f"hadith: {n} أحاديث في {len(HD_BOOKS)} كتب")
+        print(f"hadith: {n} hadiths in {len(HD_BOOKS)} books")
         return True
     except Exception as e:
         if os.environ.get("CI"):
@@ -280,4 +280,9 @@ def fetch_hadith():
 
 
 if __name__ == "__main__":
+    import sys
+    try:  # ويندوز: مخرجات الطرفية cp1252 وتفشل مع الحروف العربية
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
     build()
