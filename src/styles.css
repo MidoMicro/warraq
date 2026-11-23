@@ -173,7 +173,11 @@ body.pages-mode .pages-view{display:flex;flex-direction:column;gap:24px;align-it
 /* الآيات */
 .wq-ayah{font-family:'Amiri Quran','Amiri',serif;color:#0B4C52;user-select:none;line-height:2.1}
 .wq-ayah-ref{font-size:.8em;color:#555;user-select:none}
-.ayah-bad{outline:2px solid #A32D2D}
+.ayah-bad,.hd-bad{outline:2px solid #A32D2D}
+.wq-hadith{color:#5A3E1B;user-select:none}
+.hd-prev{font-size:16px;line-height:2;max-height:220px;overflow:auto}
+.hd-grades{margin:4px 0;padding-inline-start:18px;line-height:1.9}
+.q-hit.on{outline:2px solid #0B4C52}
 .ayah-prev{font-size:18px;text-align:center;line-height:2.2}
 .q-results{max-height:150px;overflow:auto;margin:-4px 0 10px}
 .q-hit{display:block;width:100%;text-align:start;background:#fff;border:1px solid var(--line);border-radius:6px;padding:4px 8px;margin-bottom:4px;font-family:'Amiri',serif;font-size:14px}

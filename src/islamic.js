@@ -136,7 +136,7 @@ function alignAt(U, words, from, to) {
 const QCAND = /﴿([^﴾]{6,}?)﴾|\{([^}]{6,}?)\}|\(\(([^)]{6,}?)\)\)/g;
 function findQuranCandidates() {
   const out = [];
-  const tw = document.createTreeWalker(page, NodeFilter.SHOW_TEXT, { acceptNode: (n) => n.parentElement.closest('.wq-ayah,.wq-ayah-ref,.wq-toc,.wq-bib') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+  const tw = document.createTreeWalker(page, NodeFilter.SHOW_TEXT, { acceptNode: (n) => n.parentElement.closest('.wq-ayah,.wq-ayah-ref,.wq-hadith,.wq-toc,.wq-bib') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
   let n;
   while ((n = tw.nextNode())) {
     QCAND.lastIndex = 0; let m;

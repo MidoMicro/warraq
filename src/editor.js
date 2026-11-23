@@ -26,6 +26,7 @@ function loadDocIntoEditor(doc) {
   $('#docTitle').value = doc.meta.title || '';
   refreshDerived();
   if (typeof verifyAyat === 'function') verifyAyat();
+  if (typeof verifyHadiths === 'function') verifyHadiths();
 }
 function editorHtml() { return page.innerHTML; }
 
@@ -260,6 +261,13 @@ function sanitizeHtml(html, trusted = false) {
       if (/\bwq-ayah\b/.test(cls) && !cls.includes('wq-ayah-ref')) {
         const ok = ['s', 'a', 'b'].every((k) => /^\d{1,3}$/.test(n.dataset[k] || ''));
         if (trusted && ok) out += '<span class="wq-ayah" data-s="' + n.dataset.s + '" data-a="' + n.dataset.a + '" data-b="' + n.dataset.b + '"' + (n.dataset.n === '1' ? ' data-n="1"' : '') + ' contenteditable="false" dir="rtl" lang="ar">' + escapeHtml(n.textContent) + '</span>';
+        else out += escapeHtml(n.textContent);
+        return;
+      }
+      if (/\bwq-hadith\b/.test(cls)) {
+        const d = n.dataset;
+        const ok = /^[a-z]{3,10}$/.test(d.bk || '') && /^\d{1,5}(\.\d{1,3})?$/.test(d.k || '') && /^\d{0,6}$/.test(d.o || '') && /^\d{0,6}$/.test(d.e || '');
+        if (trusted && ok) out += '<span class="wq-hadith" data-bk="' + d.bk + '" data-k="' + d.k + '"' + (d.o ? ' data-o="' + d.o + '"' : '') + (d.e ? ' data-e="' + d.e + '"' : '') + ' contenteditable="false" dir="rtl" lang="ar">' + escapeHtml(n.textContent) + '</span>';
         else out += escapeHtml(n.textContent);
         return;
       }
