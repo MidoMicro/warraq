@@ -1,5 +1,5 @@
 /* ===== core: الثوابت والحالة والأدوات العامة ===== */
-const APP_VERSION = '0.10.0';
+const APP_VERSION = '0.11.0';
 const APP_STAGE = '9';
 const APP_UPDATED = '2026-11-18';
 const FILE_FORMAT = 'warraq';
@@ -32,6 +32,18 @@ const fmtNum = (n) => {
   const s = Math.round(n).toLocaleString('en-US');
   return WQ.ui === 'ar' ? toArabicDigits(s).replace(/,/g, '٬') : s;
 };
+
+/* ---------- هوامش الصفحة (سم): الجاهزة أو المخصصة من المسطرة ---------- */
+const MARGIN_PRESETS = { normal: { t: 2.5, b: 2.5, l: 2.5, r: 2.5 }, narrow: { t: 1.27, b: 1.27, l: 1.27, r: 1.27 }, wide: { t: 2.54, b: 2.54, l: 5.08, r: 5.08 } };
+function pageMargins(s) {
+  if (s.margins === 'custom') {
+    const v = (x, d) => { const n = parseFloat(x); return isFinite(n) ? Math.min(8, Math.max(0.3, n)) : d; };
+    return { t: v(s.mT, 2.5), b: v(s.mB, 2.5), l: v(s.mL, 2.5), r: v(s.mR, 2.5) };
+  }
+  return MARGIN_PRESETS[s.margins] || MARGIN_PRESETS.normal;
+}
+const pageWidthCm = (s) => s.pageSize === 'letter' ? 21.59 : 21;
+const pageHeightCm = (s) => s.pageSize === 'letter' ? 27.94 : 29.7;
 
 /* ---------- مستند جديد ---------- */
 function newDocModel(lang = 'ar') {

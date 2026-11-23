@@ -37,7 +37,9 @@ function applyDocSettings() {
   page.lang = fz.lang = s.lang;
   sheet.classList.toggle('letter', s.pageSize === 'letter');
   sheet.classList.remove('m-narrow', 'm-wide');
-  if (s.margins !== 'normal') sheet.classList.add('m-' + s.margins);
+  const pm = pageMargins(s);
+  [['--mt', pm.t], ['--mr', pm.r], ['--mb', pm.b], ['--ml', pm.l]].forEach(([k, v]) => sheet.style.setProperty(k, v + 'cm'));
+  if (typeof refreshRulerSoon === 'function') refreshRulerSoon();
   page.classList.remove('ls-1', 'ls-115', 'ls-15', 'ls-2');
   page.classList.add('ls-' + s.lineSpacing);
   page.classList.toggle('num-ar', s.numerals === 'arabic' && s.lang === 'ar');
@@ -265,7 +267,7 @@ function buildGridTable(rows, widths) {
 }
 const ALLOWED = { P: 'p', H1: 'h1', H2: 'h2', H3: 'h3', H4: 'h3', H5: 'h3', H6: 'h3', B: 'b', STRONG: 'b', I: 'i', EM: 'i', U: 'u', S: 's', STRIKE: 's',
   UL: 'ul', OL: 'ol', LI: 'li', TABLE: 'table', COLGROUP: 'colgroup', COL: 'col', THEAD: 'thead', TBODY: 'tbody', TR: 'tr', TD: 'td', TH: 'th', BR: 'br', BLOCKQUOTE: 'blockquote', SUP: 'sup', SUB: 'sub', IMG: 'img', HR: 'hr', SPAN: 'span', FONT: 'span' };
-const STYLE_OK = ['font-family', 'font-size', 'color', 'background-color', 'text-align', 'margin-right', 'margin-left', 'font-weight', 'font-style', 'text-decoration-line', 'text-decoration'];
+const STYLE_OK = ['font-family', 'font-size', 'color', 'background-color', 'text-align', 'margin-right', 'margin-left', 'line-height', 'text-indent', 'font-weight', 'font-style', 'text-decoration-line', 'text-decoration'];
 const ID_RE = /^[A-Za-z0-9_-]{1,40}$/;
 function cleanStyle(st) {
   const out = [];
@@ -361,10 +363,8 @@ function countWords() {
 }
 /* رقم الصفحة التقريبي لعنصر (يراعي فواصل الصفحات والهوامش) */
 function pageContentHeight() {
-  const s = WQ.doc.settings;
-  const h = s.pageSize === 'letter' ? 27.94 : 29.7;
-  const m = s.margins === 'narrow' ? 1.27 : (s.margins === 'wide' ? 2.54 : 2.5);
-  return (h - 2 * m) * 37.7953;
+  const s = WQ.doc.settings, m = pageMargins(s);
+  return (pageHeightCm(s) - m.t - m.b) * 37.7953;
 }
 function pageOf(elm) {
   const H = pageContentHeight();

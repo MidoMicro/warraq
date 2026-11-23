@@ -314,7 +314,22 @@ async function docxToWarraq(buf) {
       const fmt = (numFmt[wval(kid(np, 'numId'))] || {})[wval(kid(np, 'ilvl')) || '0'];
       if (fmt && fmt !== 'none') return { kind: 'li', list: fmt === 'bullet' ? 'ul' : 'ol', inner };
     }
-    return { kind: 'p', inner, plain, info, center: jc === 'center', justify: jc === 'both' || jc === 'distribute' };
+    // المسافات البادئة وتباعد الأسطر الخاصة بالفقرة
+    let pst = '';
+    const ind = pr && kid(pr, 'ind'), sp = pr && kid(pr, 'spacing'), bidi = !!(pr && kid(pr, 'bidi'));
+    const tw = (e, ...ks) => { for (const k of ks) { const v = e && (e.getAttributeNS(W_NS, k) || e.getAttribute('w:' + k)); if (v && /^-?\d+$/.test(v)) return +v / 567; } return 0; };
+    if (ind) {
+      const stt = tw(ind, 'start', 'left'), en = tw(ind, 'end', 'right'), fl = tw(ind, 'firstLine'), hg = tw(ind, 'hanging');
+      const cm = (x) => Math.round(Math.min(8, Math.max(0, x)) * 100) / 100 + 'cm';
+      if (stt > 0.05) pst += '; margin-' + (bidi ? 'right' : 'left') + ': ' + cm(stt);
+      if (en > 0.05) pst += '; margin-' + (bidi ? 'left' : 'right') + ': ' + cm(en);
+      if (hg > 0.05) pst += '; text-indent: -' + cm(hg); else if (fl > 0.05) pst += '; text-indent: ' + cm(fl);
+    }
+    if (sp) {
+      const ln = +(sp.getAttributeNS(W_NS, 'line') || sp.getAttribute('w:line') || 0), rule = sp.getAttributeNS(W_NS, 'lineRule') || sp.getAttribute('w:lineRule') || 'auto';
+      if (ln && rule === 'auto') { const m = [[240, '1.15'], [276, '1.3'], [360, '1.5'], [480, '2'], [600, '2.5'], [720, '3']].find((x) => Math.abs(x[0] - ln) <= 12); if (m && m[0] !== 360) pst += '; line-height: ' + m[1]; }
+    }
+    return { kind: 'p', inner, plain, info, center: jc === 'center', justify: jc === 'both' || jc === 'distribute', pst };
   };
   const tableHtml = async (c) => {
     const wattr = (e, a) => e && (e.getAttributeNS(W_NS, a) || e.getAttribute('w:' + a));
@@ -385,7 +400,7 @@ async function docxToWarraq(buf) {
     if (list) { html += '</' + list + '>'; list = null; }
     if (x.kind === 'h') html += '<h' + x.level + ' dir="auto">' + x.inner + '</h' + x.level + '>';
     else if (x.kind === 'tbl') html += x.html;
-    else html += '<p dir="auto"' + (x.center ? ' style="text-align: center"' : (x.justify ? ' style="text-align: justify"' : '')) + '>' + x.inner + '</p>';
+    else { const sty = (x.center ? 'text-align: center' : (x.justify ? 'text-align: justify' : '')) + (x.pst || ''); html += '<p dir="auto"' + (sty ? ' style="' + sty.replace(/^; /, '') + '"' : '') + '>' + x.inner + '</p>'; }
     lastEmpty = false;
   });
   if (list) html += '</' + list + '>';

@@ -2,9 +2,8 @@
 const CM = 37.7953;
 function pageGeom() {
   const s = WQ.doc.settings;
-  const W = s.pageSize === 'letter' ? 21.59 * CM : 21 * CM, H = s.pageSize === 'letter' ? 27.94 * CM : 29.7 * CM;
-  const m = s.margins === 'narrow' ? { t: 1.27, s: 1.27 } : (s.margins === 'wide' ? { t: 2.54, s: 5.08 } : { t: 2.5, s: 2.5 });
-  return { W, H, mt: m.t * CM, ms: m.s * CM, cw: W - 2 * m.s * CM, ch: H - 2 * m.t * CM };
+  const W = pageWidthCm(s) * CM, H = pageHeightCm(s) * CM, m = pageMargins(s);
+  return { W, H, mt: m.t * CM, mb: m.b * CM, ml: m.l * CM, mr: m.r * CM, ms: Math.min(m.l, m.r) * CM, cw: W - (m.l + m.r) * CM, ch: H - (m.t + m.b) * CM };
 }
 let PV = { pages: 0, stale: true, headPage: {} };
 /* الترقيم التمهيدي: الصفحات قبل أول فصل (عنوان ١ ليس من المقدمات) بالحروف، ثم ١ من أول فصل */
@@ -19,11 +18,11 @@ function pvLabel(n) { return (PV.exact && PV.labels && PV.labels[n - 1] !== unde
 function makePage(g, n) {
   const s = WQ.doc.settings;
   const pg = el('div', { class: 'pv-page' + (s.pageSize === 'letter' ? ' letter' : ''), 'data-n': String(n) });
-  pg.style.width = g.W + 'px'; pg.style.height = g.H + 'px'; pg.style.padding = g.mt + 'px ' + g.ms + 'px';
+  pg.style.width = g.W + 'px'; pg.style.height = g.H + 'px'; pg.style.padding = g.mt + 'px ' + g.mr + 'px ' + g.mb + 'px ' + g.ml + 'px';
   const box = el('div', { class: 'pv-box' + (isRuled() ? ' ruled' : '') }); box.style.height = g.ch + 'px';
   const body = el('div', { class: 'page pv-body ' + Array.from(page.classList).filter((c) => /^(ls-|num-ar|ruled$)/.test(c)).join(' '), dir: page.dir, lang: page.lang });
   const fns = el('div', { class: 'pv-fns fn-zone', dir: page.dir, lang: page.lang });
-  const num = el('div', { class: 'pv-num' }); num.style.bottom = (g.mt / 2 - 8) + 'px';
+  const num = el('div', { class: 'pv-num' }); num.style.bottom = (g.mb / 2 - 8) + 'px';
   box.append(body, fns); pg.append(box, num);
   addPageFrame(pg, g);
   return { pg, body, fns, num };

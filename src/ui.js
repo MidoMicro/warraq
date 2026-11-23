@@ -47,6 +47,10 @@ function rb(html, title, run, cls = '', data = {}) {
     onmousedown: (e) => e.preventDefault(), onclick: run });
 }
 const sep = () => el('span', { class: 'rsep' });
+/* مجموعات الشريط: مجموعة بعنوان أسفلها، وأعمدة وصفوف داخلها */
+const grp = (label, ...kids) => el('div', { class: 'rgroup', role: 'group', 'aria-label': label }, [el('div', { class: 'rg-body' }, kids), el('div', { class: 'rg-label', html: escapeHtml(label) })]);
+const col = (...kids) => el('div', { class: 'rg-col' }, kids);
+const row = (...kids) => el('div', { class: 'rg-row' }, kids);
 function rsel(title, options, value, onchange) {
   const s = el('select', { class: 'rsel', title, 'aria-label': title,
     onmousedown: saveRange, onfocus: saveRange,
@@ -77,7 +81,7 @@ function renderTabs() {
 }
 
 function renderRibbon() {
-  const r = $('#ribbon'); r.innerHTML = '';
+  const r = $('#ribbon'); r.innerHTML = ''; r.classList.remove('grouped');
   const s = WQ.doc.settings;
   const add = (...xs) => xs.forEach((x) => r.append(x));
   switch (activeTab) {
@@ -94,28 +98,41 @@ function renderRibbon() {
         rb('🖼 ' + t('exportPng'), t('exportPng'), () => exportPNG(false)), rb('🗂 ' + t('exportPngAll'), t('exportPngAll'), () => exportPNG(true)),
         sep(), rb('◷ ' + t('snapshots'), t('snapshots'), openSnapshotsDialog), rb('ⓘ ' + t('props'), t('props'), openPropsDialog), rb('✎ ' + t('about'), t('about'), openAbout), rb('⚑ ' + t('reportIssue'), t('reportIssueT'), openIssues));
       break;
-    case 'home':
-      add(rb('↶', t('undo'), () => cmd('undo')), rb('↷', t('redo'), () => cmd('redo')), sep(),
-        rsel(t('font'), fontOptions(), '', (v) => { if (v) setFont(v); }),
-        rsel(t('size'), SIZES.map((n) => [n, String(n)]), 16, (v) => setFontSize(+v)), sep(),
-        rb('<b>B</b>', t('bold'), () => cmd('bold'), '', { state: 'bold' }),
-        rb('<i>I</i>', t('italic'), () => cmd('italic'), '', { state: 'italic' }),
-        rb('<u>U</u>', t('underline'), () => cmd('underline'), '', { state: 'underline' }),
-        rb('<s>S</s>', t('strike'), () => cmd('strikeThrough'), '', { state: 'strikeThrough' }),
-        colorBtn(t('color'), 'foreColor', '#0F5F66'), colorBtn(t('highlight'), 'hiliteColor', '#FAEEDA'), sep(),
-        rb(alignIcon('start'), t('alignStart'), () => align('start')), rb(alignIcon('center'), t('alignCenter'), () => align('center')),
-        rb(alignIcon('end'), t('alignEnd'), () => align('end')), rb(alignIcon('justify'), t('justify'), () => align('justify')), sep(),
-        rb('• ≡', t('bullets'), () => cmd('insertUnorderedList')), rb('1. ≡', t('numbered'), () => cmd('insertOrderedList')),
-        rb('⇥', t('indent'), () => cmd('indent')), rb('⇤', t('outdent'), () => cmd('outdent')), sep(),
-        rb(t('h1'), t('h1'), () => setBlock('h1'), 'outline', { block: 'H1' }), rb(t('h2'), t('h2'), () => setBlock('h2'), 'outline', { block: 'H2' }),
-        rb(t('h3'), t('h3'), () => setBlock('h3'), 'outline', { block: 'H3' }), rb(t('normal'), t('normal'), () => setBlock('p'), 'outline', { block: 'P' }),
-        rb(t('quote'), t('quote'), () => setBlock('blockquote'), 'outline', { block: 'BLOCKQUOTE' }),
-        rb('⌫ ' + t('clear'), t('clear'), clearFormat), sep(),
-        rsel(t('tkLabel'), [['', 'ـَـ ' + t('tkLabel')], ['full', t('tkFull')], ['strict', t('tkStrict')], ['ends', t('tkEnds')], ['remove', t('tkRemove')], ['accept', t('tkAccept')]], '', (v) => { renderRibbon(); if (v) tashkeelSelection(v); }), sep(),
-        el('span', { class: 'rlabel', html: escapeHtml(t('numerals')) }),
-        rb('١٢٣', t('numerals') + ' ١٢٣', () => setNumerals('arabic'), 'special' + (s.numerals === 'arabic' ? ' on' : '')),
-        rb('123', t('numerals') + ' 123', () => setNumerals('western'), 'special' + (s.numerals === 'western' ? ' on' : '')));
+    case 'home': {
+      r.classList.add('grouped');
+      const ib = (ic, label, title, run, cls = '', data) => rb(icon(ic) + (label ? '<span>' + escapeHtml(label) + '</span>' : ''), title, run, cls, data);
+      add(grp(t('grpUndo'), col(row(ib('undo', '', t('undo') + ' (Ctrl+Z)', () => cmd('undo'), 'sm')), row(ib('redo', '', t('redo') + ' (Ctrl+Y)', () => cmd('redo'), 'sm')))),
+        grp(t('grpClipboard'), ib('paste', t('paste'), t('paste') + ' (Ctrl+V)', clipPaste, 'big'),
+          col(row(ib('cut', t('cut'), t('cut') + ' (Ctrl+X)', clipCut, 'sm')), row(ib('copy', t('copy'), t('copy') + ' (Ctrl+C)', clipCopy, 'sm')),
+            row(ib('painter', t('painter'), t('painterT'), startPainter, 'sm' + (painter ? ' painting-on' : ''))))),
+        grp(t('grpFont'), col(
+          row(Object.assign(rsel(t('font'), fontOptions(), '', (v) => { if (v) setFont(v); }), { className: 'rsel fnt' }),
+            Object.assign(rsel(t('size'), SIZES.map((n) => [n, String(n)]), 16, (v) => setFontSize(+v)), { className: 'rsel fsz' }),
+            ib('grow', '', t('growFont'), () => stepFont(1), 'sm'), ib('shrink', '', t('shrinkFont'), () => stepFont(-1), 'sm'), ib('clear', '', t('clear'), clearFormat, 'sm')),
+          row(rb('<b>B</b>', t('bold') + ' (Ctrl+B)', () => cmd('bold'), 'sm', { state: 'bold' }),
+            rb('<i>I</i>', t('italic') + ' (Ctrl+I)', () => cmd('italic'), 'sm', { state: 'italic' }),
+            rb('<u>U</u>', t('underline') + ' (Ctrl+U)', () => cmd('underline'), 'sm', { state: 'underline' }),
+            rb('<s>S</s>', t('strike'), () => cmd('strikeThrough'), 'sm', { state: 'strikeThrough' }),
+            ib('sub', '', t('subscript'), () => cmd('subscript'), 'sm', { state: 'subscript' }), ib('sup', '', t('superscript'), () => cmd('superscript'), 'sm', { state: 'superscript' }),
+            colorBtn(t('color'), 'foreColor', '#0F5F66'), colorBtn(t('highlight'), 'hiliteColor', '#FAEEDA')))),
+        grp(t('grpPara'), col(
+          row(ib('bullets', '', t('bullets'), () => cmd('insertUnorderedList'), 'sm'), ib('numbered', '', t('numbered'), () => cmd('insertOrderedList'), 'sm'),
+            ib('indentLess', '', t('outdent'), () => changeIndent(-1), 'sm'), ib('indentMore', '', t('indent'), () => changeIndent(1), 'sm'),
+            el('span', { class: 'rb sm', html: icon('lineSp'), title: t('paraLS'), style: 'pointer-events:none;padding-inline-end:0' }),
+            Object.assign(rsel(t('paraLS'), [['', t('lsDoc')]].concat(PARA_LS.map((x) => [x[1], x[0]])), curParaLS(), setParaLineSpacing), { className: 'rsel lsp', id: 'paraLs' })),
+          row(rb(alignIcon('start'), t('alignStart'), () => align('start'), 'sm'), rb(alignIcon('center'), t('alignCenter'), () => align('center'), 'sm'),
+            rb(alignIcon('end'), t('alignEnd'), () => align('end'), 'sm'), rb(alignIcon('justify'), t('justify'), () => align('justify'), 'sm')))),
+        grp(t('grpStyles'), el('div', { class: 'style-gal' }, [['P', 'p', t('normal'), ''], ['H1', 'h1', t('h1'), 'h1'], ['H2', 'h2', t('h2'), 'h2'], ['H3', 'h3', t('h3'), 'h3'], ['BLOCKQUOTE', 'blockquote', t('quote'), 'q']].map(([B, tag, lab, c]) =>
+          el('button', { class: 'sg ' + c, title: lab, 'aria-label': lab, data: { block: B }, html: escapeHtml(lab), onmousedown: (e) => e.preventDefault(), onclick: () => setBlock(tag) })))),
+        grp(t('grpArabic'), col(
+          row(Object.assign(rsel(t('tkLabel'), [['', 'ـَـ ' + t('tkLabel')], ['full', t('tkFull')], ['strict', t('tkStrict')], ['ends', t('tkEnds')], ['remove', t('tkRemove')], ['accept', t('tkAccept')]], '', (v) => { renderRibbon(); if (v) tashkeelSelection(v); }), { className: 'rsel tk' })),
+          row(el('span', { class: 'rlabel', html: escapeHtml(t('numerals')) }),
+            rb('١٢٣', t('numerals') + ' ١٢٣', () => setNumerals('arabic'), 'sm special' + (s.numerals === 'arabic' ? ' on' : '')),
+            rb('123', t('numerals') + ' 123', () => setNumerals('western'), 'sm special' + (s.numerals === 'western' ? ' on' : ''))))),
+        grp(t('grpEdit'), col(row(ib('find', t('find'), t('find') + ' (Ctrl+F)', () => openFind(false), 'sm')), row(ib('replace', t('replace'), t('replace') + ' (Ctrl+H)', () => openFind(true), 'sm')),
+          row(ib('selectAll', t('selectAll'), t('selectAll') + ' (Ctrl+A)', selectAllDoc, 'sm')))));
       break;
+    }
     case 'insert':
       add(rb('▦ ' + t('table'), t('table'), openTableDialog), rb('🖼 ' + t('image'), t('image'), () => { saveRange(); $('#fileImage').value = ''; $('#fileImage').click(); }),
         sep(), rb('⤓ ' + t('pageBreak'), t('pageBreak'), insertPageBreak), rb('― ' + t('hr'), t('hr'), () => insertHtml('<hr><p dir="auto"><br></p>')),
@@ -169,7 +186,7 @@ function renderRibbon() {
         el('span', { class: 'rlabel', html: escapeHtml(t('pageSize')) }),
         rsel(t('pageSize'), [['a4', 'A4'], ['letter', 'Letter']], s.pageSize, (v) => setSetting('pageSize', v)),
         el('span', { class: 'rlabel', html: escapeHtml(t('margins')) }),
-        rsel(t('margins'), [['normal', t('mNormal')], ['narrow', t('mNarrow')], ['wide', t('mWide')]], s.margins, (v) => setSetting('margins', v)),
+        rsel(t('margins'), [['normal', t('mNormal')], ['narrow', t('mNarrow')], ['wide', t('mWide')], ['custom', t('mCustom')]], s.margins, (v) => { if (v === 'custom') { renderRibbon(); openMarginsDialog(); } else setSetting('margins', v); }),
         el('span', { class: 'rlabel', html: escapeHtml(t('lineSpacing')) }),
         ...(isRuled() ? [] : [rsel(t('lineSpacing'), [['1', '1.0'], ['115', '1.15'], ['15', '1.5'], ['2', '2.0']], s.lineSpacing, (v) => setSetting('lineSpacing', v))]), sep(),
         el('span', { class: 'rlabel', html: escapeHtml(t('frontNum')) }),
@@ -187,6 +204,7 @@ function renderRibbon() {
         rsel(t('zoom'), [75, 90, 100, 110, 125, 150].map((z) => [z, z + '%']), WQ.prefs.zoom, (v) => { WQ.prefs.zoom = +v; applyPrefs(); savePrefs(); }), sep(),
         rb('☰ ' + t('showMap'), t('showMap'), () => { WQ.prefs.showNav = !WQ.prefs.showNav; applyPrefs(); savePrefs(); renderRibbon(); }, WQ.prefs.showNav ? 'on' : ''),
         rb('▤ ' + t('showRefs'), t('showRefs'), () => { WQ.prefs.showRefs = !WQ.prefs.showRefs; applyPrefs(); savePrefs(); renderRibbon(); }, WQ.prefs.showRefs ? 'on' : ''), sep(),
+        rb(icon('ruler', 16) + ' ' + t('showRuler'), t('showRuler'), () => { WQ.prefs.showRuler = WQ.prefs.showRuler === false; applyPrefs(); savePrefs(); renderRibbon(); refreshRuler(); }, WQ.prefs.showRuler !== false ? 'on' : ''), sep(),
         rb('▭▭ ' + t('pagesView'), t('pagesView'), () => setPagesView(!document.body.classList.contains('pages-mode')), document.body.classList.contains('pages-mode') ? 'on' : ''), sep(),
         rb('◎ ' + t('focus'), t('focus'), () => { document.body.classList.add('focus'); page.focus(); }),
         rb('🎯 ' + t('dailyGoal'), t('goalTitle'), openGoalDialog));
@@ -214,6 +232,7 @@ function updateToolbarState() {
   const blk = currentBlock();
   const tag = blk ? (blk.closest('h1,h2,h3,blockquote') || blk).tagName : '';
   $$('[data-block]').forEach((b) => b.classList.toggle('on', b.dataset.block === tag));
+  const ls = $('#paraLs'); if (ls) { const v = blk && blk.style.lineHeight ? blk.style.lineHeight : ''; ls.value = PARA_LS.some((x) => x[1] === v) ? v : ''; }
 }
 
 /* ---------- إعدادات المستند ---------- */
@@ -328,6 +347,7 @@ function savePrefs() { lsSet(LS_PREFS, WQ.prefs); }
 function applyPrefs() {
   document.body.classList.toggle('hide-nav', !WQ.prefs.showNav);
   document.body.classList.toggle('hide-ref', !WQ.prefs.showRefs);
+  document.body.classList.toggle('hide-ruler', WQ.prefs.showRuler === false);
   document.documentElement.style.setProperty('--zoom', WQ.prefs.zoom / 100);
 }
 function applyUiLang() {
@@ -355,9 +375,11 @@ function boot() {
   initTableMenu();
   initTashkeelEvents();
   initHadithEvents();
+  initFormatEvents();
   restoreOrNew();
   applyPrefs();
   applyUiLang();
+  initRuler();
   if (!(page.innerText || '').trim()) openStart();
   $('#btnUiLang').onclick = () => { WQ.ui = WQ.ui === 'ar' ? 'en' : 'ar'; WQ.prefs.ui = WQ.ui; savePrefs(); applyUiLang(); };
   $('#docTitle').addEventListener('input', markDirty);
@@ -385,6 +407,6 @@ function boot() {
       window.claude.use('downloads').then((d) => { WQ.downloads = d || null; }).catch(() => {});
     }
   } catch (e) {}
-  window.WQ_API = { WQ, renderIndexes, parseBibTeX, parseRIS, importRefs, toBibTeX, ieeeRef, harvardRef, chicagoRef, mlaRef, inTextFor, crossrefToRef, cleanDOI, hdTypo, sunnahUrl, hadithSpan, loadHadithIndex, loadHadithBook, loadAllHadith, searchHadith, matchHadith, insertHadith, hdTakhrij, hdMatnStart, verifyHadiths, loadTashkeel, tashkeelSelection, ayahText, matchQuran, poemHtml, exportPDF, exportPNG, drawPage, zipStore, paginate, setPagesView, PV: () => PV, takeSnapshot, restoreSnapshot, applyTemplate, docxToWarraq, loadQuran, insertAyah, searchQuran, openStart, refreshDerived, setCiteStyle, addCitation, addFootnote, insertBlock, renderCitations, apaRef, vanRef, serializeDoc, parseDoc, loadDocIntoEditor, sanitizeHtml, countWords, setDocLang, setNumerals, setBlock, insertTable, newDocModel };
+  window.WQ_API = { WQ, pageMargins, openFind, frSearch, FR, frReplaceAll, changeIndent, setParaLineSpacing, setBlockIndent, blockIndents, refreshRuler, rulerBlockPos, openMarginsDialog, startPainter, renderIndexes, parseBibTeX, parseRIS, importRefs, toBibTeX, ieeeRef, harvardRef, chicagoRef, mlaRef, inTextFor, crossrefToRef, cleanDOI, hdTypo, sunnahUrl, hadithSpan, loadHadithIndex, loadHadithBook, loadAllHadith, searchHadith, matchHadith, insertHadith, hdTakhrij, hdMatnStart, verifyHadiths, loadTashkeel, tashkeelSelection, ayahText, matchQuran, poemHtml, exportPDF, exportPNG, drawPage, zipStore, paginate, setPagesView, PV: () => PV, takeSnapshot, restoreSnapshot, applyTemplate, docxToWarraq, loadQuran, insertAyah, searchQuran, openStart, refreshDerived, setCiteStyle, addCitation, addFootnote, insertBlock, renderCitations, apaRef, vanRef, serializeDoc, parseDoc, loadDocIntoEditor, sanitizeHtml, countWords, setDocLang, setNumerals, setBlock, insertTable, newDocModel };
 }
 document.addEventListener('DOMContentLoaded', boot);

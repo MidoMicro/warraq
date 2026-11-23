@@ -105,7 +105,7 @@ function docxBuilder() {
     const ext = m[1] === 'jpg' ? 'jpeg' : m[1];
     const idx = st.media.length + 1, rid = 'rIdImg' + idx;
     st.media.push({ name: 'image' + idx + '.' + ext, data: dataUrlBytes(img.src), ext });
-    const maxW = (s.pageSize === 'letter' ? 21.59 : 21) - 2 * (s.margins === 'narrow' ? 1.27 : (s.margins === 'wide' ? 5.08 : 2.5));
+    const pm0 = pageMargins(s), maxW = pageWidthCm(s) - pm0.l - pm0.r;
     let w = img.naturalWidth || 400, h = img.naturalHeight || 300;
     const wcm = Math.min(maxW, w / 37.8); h = h * (wcm / (w / 37.8)); w = wcm; const hcm = h / 37.8;
     const cx = Math.round(w * 360000), cy = Math.round(hcm * 360000);
@@ -122,6 +122,16 @@ function docxBuilder() {
     const ta = e.style && e.style.textAlign;
     let pr = extraPr || '';
     if (rtl) pr += '<w:bidi/>';
+    // تباعد الأسطر والمسافات البادئة الخاصة بالفقرة (من المسطرة والشريط)
+    if (e.style && e.style.lineHeight && (!s.ruled || s.ruled === 'off')) pr += '<w:spacing w:line="' + lsTwips(e.style.lineHeight) + '" w:lineRule="auto"/>';
+    if (e.style && (e.style.marginLeft || e.style.marginRight || e.style.textIndent)) {
+      const st0 = cssCm(rtl ? e.style.marginRight : e.style.marginLeft), en0 = cssCm(rtl ? e.style.marginLeft : e.style.marginRight), fi = cssCm(e.style.textIndent);
+      let ind = '';
+      if (st0 > 0) ind += ' w:left="' + twip(st0) + '"';
+      if (en0 > 0) ind += ' w:right="' + twip(en0) + '"';
+      if (fi > 0) ind += ' w:firstLine="' + twip(fi) + '"'; else if (fi < 0) ind += ' w:hanging="' + twip(-fi) + '"';
+      if (ind) pr += '<w:ind' + ind + '/>';
+    }
     if (ta === 'center') pr += '<w:jc w:val="center"/>';
     else if (ta === 'justify' || (!ta && /^(P|LI|BLOCKQUOTE)$/.test(e.tagName))) pr += '<w:jc w:val="both"/>';
     else if (ta === 'right') pr += '<w:jc w:val="' + (rtl ? 'start' : 'end') + '"/>';
@@ -136,7 +146,7 @@ function docxBuilder() {
   function newNum(ordered) {
     const id = st.nums.length + 1; st.nums.push(ordered ? 2 : 1); return id;
   }
-  const cw = twip(((s.pageSize === 'letter' ? 21.59 : 21) - 2 * (s.margins === 'narrow' ? 1.27 : (s.margins === 'wide' ? 5.08 : 2.5))));
+  const PM = pageMargins(s), cw = twip(pageWidthCm(s) - PM.l - PM.r);
   function block(e) {
     const tag = e.tagName;
     if (/^H[1-3]$/.test(tag)) return para(e, '<w:pStyle w:val="Heading' + tag[1] + '"/>');
@@ -269,7 +279,7 @@ function docxBuilder() {
     renderToc();
     const ar = s.lang === 'ar', hindi = s.numerals === 'arabic'; // الأرقام تتبع اختيار «١٢٣ / 123»
     const W = s.pageSize === 'letter' ? 12240 : 11906, H = s.pageSize === 'letter' ? 15840 : 16838;
-    const mT = twip(s.margins === 'narrow' ? 1.27 : (s.margins === 'wide' ? 2.54 : 2.5)), mS = twip(s.margins === 'narrow' ? 1.27 : (s.margins === 'wide' ? 5.08 : 2.5));
+    const mT = twip(PM.t), mB = twip(PM.b), mL = twip(PM.l), mR = twip(PM.r);
     const line = { '1': 240, '115': 276, '15': 360, '2': 480 }[s.lineSpacing] || 360;
     const NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
     const hideFirst = s.hideFirstNum !== false;
@@ -289,7 +299,7 @@ function docxBuilder() {
       const fmt = front ? (ar ? 'arabicAbjad' : 'lowerRoman') : (hindi ? 'hindiNumbers' : 'decimal');
       return '<w:sectPr><w:footerReference w:type="default" r:id="rIdFtr1"/>' + (first ? '<w:footerReference w:type="first" r:id="rIdFtr2"/>' : '') +
         '<w:footnotePr><w:numFmt w:val="' + (hindi ? 'hindiNumbers' : 'decimal') + '"/>' + (s.fnRestart ? '<w:numRestart w:val="eachPage"/>' : '') + '</w:footnotePr>' +
-        '<w:pgSz w:w="' + W + '" w:h="' + H + '"/><w:pgMar w:top="' + mT + '" w:right="' + mS + '" w:bottom="' + mT + '" w:left="' + mS + '" w:header="708" w:footer="567" w:gutter="0"/>' +
+        '<w:pgSz w:w="' + W + '" w:h="' + H + '"/><w:pgMar w:top="' + mT + '" w:right="' + mR + '" w:bottom="' + mB + '" w:left="' + mL + '" w:header="708" w:footer="567" w:gutter="0"/>' +
         pgBordersXml(s) + '<w:pgNumType w:fmt="' + fmt + '"' + (front || frontDone ? ' w:start="1"' : '') + '/>' + (first ? '<w:titlePg/>' : '') + (ar ? '<w:bidi/>' : '') + '</w:sectPr>';
     }
     const sect = sectXml(false);
