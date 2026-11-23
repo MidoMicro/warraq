@@ -5,7 +5,10 @@ const SRC = path.join(__dirname, '..', 'dist');
 const WEB = path.join(__dirname, 'web');
 const FONTS = [
   { dir: 'amiri', family: 'Amiri' }, { dir: 'amiriquran', family: 'Amiri Quran' },
-  { dir: 'notonaskharabic', family: 'Noto Naskh Arabic' }, { dir: 'cairo', family: 'Cairo' }, { dir: 'tajawal', family: 'Tajawal' }
+  { dir: 'notonaskharabic', family: 'Noto Naskh Arabic' }, { dir: 'cairo', family: 'Cairo' }, { dir: 'tajawal', family: 'Tajawal' },
+  { dir: 'scheherazadenew', family: 'Scheherazade New' }, { dir: 'lateef', family: 'Lateef' }, { dir: 'markazitext', family: 'Markazi Text' },
+  { dir: 'ibmplexsansarabic', family: 'IBM Plex Sans Arabic' }, { dir: 'notokufiarabic', family: 'Noto Kufi Arabic' }, { dir: 'almarai', family: 'Almarai' },
+  { dir: 'readexpro', family: 'Readex Pro' }, { dir: 'elmessiri', family: 'El Messiri' }, { dir: 'changa', family: 'Changa' }
 ];
 function copyDir(a, b) {
   fs.mkdirSync(b, { recursive: true });
