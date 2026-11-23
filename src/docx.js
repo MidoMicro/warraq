@@ -64,7 +64,6 @@ function docxBuilder() {
       const tag = c.tagName;
       if (c.classList.contains('wq-fn')) { out += footnoteRef(c.dataset.fn, f); return; }
       if (c.classList.contains('wq-ayah')) { g.ayah = true; g.color = '0B4C52'; }
-      if (c.classList.contains('wq-hadith')) g.color = '5A3E1B';
       if (c.classList.contains('ibid')) { /* نص عادي */ }
       if (tag === 'BR') { out += '<w:r><w:br/></w:r>'; return; }
       if (tag === 'IMG') { out += imageRun(c); return; }

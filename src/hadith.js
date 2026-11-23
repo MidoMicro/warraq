@@ -47,6 +47,18 @@ function hdMatnStart(text) {
   return (o > text.length * 0.85) ? 0 : o;
 }
 function hdSlice(text, o, e) { return text.slice(o || 0, e || text.length).trim(); }
+/* ظبط علامات الترقيم في النص المُدرج (الحروف والتشكيل كما هي في المصدر):
+   لا مسافة قبل ، : ؛ . ؟ !، ومسافة واحدة بعدها، وعلامة " التي ليس لها نظير تُحذف، والمسافات داخل "…" تُزال */
+function hdTypo(s) {
+  s = String(s).replace(/\s+/g, ' ').replace(/\s+([،:؛.؟!,)\]])/g, '$1').replace(/([(\[])\s+/g, '$1')
+    .replace(/([،:؛؟!,])(?=[^\s"«»)\]،:؛.؟!,])/g, '$1 ');
+  const q = []; for (let i = 0; i < s.length; i++) if (s[i] === '"') q.push(i);
+  if (q.length % 2) { const k = q.pop(); s = s.slice(0, k) + ' ' + s.slice(k + 1); } // علامة بلا نظير
+  // داخل كل زوج "…": لا مسافة بعد الفتح ولا قبل الإغلاق
+  let open = true;
+  s = s.replace(/\s*"\s*/g, (m) => { const r = open ? (/^\s/.test(m) ? ' "' : '"') : (/\s$/.test(m) ? '" ' : '"'); open = !open; return r; });
+  return s.replace(/\s+/g, ' ').replace(/\s+([،:؛.؟!,])/g, '$1').trim();
+}
 
 /* أحكام العلماء: [اسم العالم بالعربية، الحكم بالعربية (أو الأصل إن لم تتوفر ترجمة دقيقة)، الأصل الإنجليزي] */
 function hdGrades(bk, item) {
@@ -72,7 +84,7 @@ function hdTakhrij(bk, key, withGrades) {
   }
   return s;
 }
-function hdText(bk, key, o, e) { const it = hdGet(bk, key); return it ? '«' + hdSlice(it[1], o, e) + '»' : null; }
+function hdText(bk, key, o, e) { const it = hdGet(bk, key); return it ? '«' + hdTypo(hdSlice(it[1], o, e)) + '»' : null; }
 function hadithSpan(bk, key, o, e) {
   const it = hdGet(bk, key); if (!it) return '';
   return '<span class="wq-hadith" data-bk="' + bk + '" data-k="' + E(String(key)) + '"' + (o ? ' data-o="' + o + '"' : '') + (e ? ' data-e="' + e + '"' : '') +
@@ -143,12 +155,12 @@ async function openHadithDialog() {
     '<div id="hResults" class="q-results"></div>' +
     '<label>' + E(t('preview')) + '</label><div class="preview-box hd-prev" id="hPrev" dir="rtl"><p class="wq-note">' + E(t('hdPick')) + '</p></div>' +
     '<div id="hGrades"></div>' +
-    '<div class="chips"><button class="chip on" data-p="full">' + E(t('hdFull')) + '</button><button class="chip" data-p="matn">' + E(t('hdMatn')) + '</button>' +
+    '<div class="chips"><button class="chip on" data-p="matn">' + E(t('hdMatn')) + '</button><button class="chip" data-p="full">' + E(t('hdFull')) + '</button>' +
     '<span style="width:12px"></span><button class="chip on" data-w="note">' + E(t('refInNote')) + '</button><button class="chip" data-w="text">' + E(t('refInText')) + '</button>' +
     '<label style="display:flex;gap:6px;align-items:center;margin:0 8px"><input id="hWithG" type="checkbox" checked style="width:auto;margin:0">' + E(t('hdWithGrades')) + '</label>' +
     '<a class="chip" id="hDorar" target="_blank" rel="noopener" href="https://dorar.net/hadith">' + E(t('hdDorar')) + '</a></div>' +
     '<p class="wq-note">' + E(t('hdDorarNote')) + '</p>' + hdCredits();
-  let sel = null, part = 'full', where = 'note';
+  let sel = null, part = 'matn', where = 'note';
   showModal({ title: t('insertHadith'), body, wide: true,
     actions: [{ label: t('cancel') }, { label: t('insert'), cls: 'btn', run: (m) => {
       if (!sel) { toast(t('hdPick')); return false; }
@@ -177,7 +189,7 @@ async function openHadithDialog() {
       };
       const listHits = (res) => {
         if (!res.length) { box.innerHTML = '<p class="wq-note">' + E(t('noResults')) + '</p>'; return; }
-        box.innerHTML = res.map(([bk, key]) => '<button class="q-hit" data-bk="' + bk + '" data-k="' + E(key) + '"><b>' + E(hdRefLabel(bk, key)) + '</b> ' + E(hdSlice(hdGet(bk, key)[1], hdMatnStart(hdGet(bk, key)[1])).slice(0, 110)) + '</button>').join('');
+        box.innerHTML = res.map(([bk, key]) => '<button class="q-hit" data-bk="' + bk + '" data-k="' + E(key) + '"><b>' + E(hdRefLabel(bk, key)) + '</b> ' + E(hdTypo(hdSlice(hdGet(bk, key)[1], hdMatnStart(hdGet(bk, key)[1]))).slice(0, 110)) + '</button>').join('');
         $$('.q-hit', box).forEach((h) => h.onclick = () => pick(h.dataset.bk, h.dataset.k));
       };
       Bk.onchange = async () => { showNumbering(); if (Bk.value !== '*') { await ensure([Bk.value]); box.innerHTML = ''; } if (Sr.value.trim()) Sr.oninput(); else if (Nm.value.trim()) Nm.oninput(); };

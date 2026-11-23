@@ -174,7 +174,8 @@ body.pages-mode .pages-view{display:flex;flex-direction:column;gap:24px;align-it
 .wq-ayah{font-family:'Amiri Quran','Amiri',serif;color:#0B4C52;user-select:none;line-height:2.1}
 .wq-ayah-ref{font-size:.8em;color:#555;user-select:none}
 .ayah-bad,.hd-bad{outline:2px solid #A32D2D}
-.wq-hadith{color:#5A3E1B;user-select:none}
+.wq-hadith{user-select:none}
+#page .wq-hadith,.hd-prev .wq-hadith{background:#F6EFE3;border-radius:3px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
 .hd-prev{font-size:16px;line-height:2;max-height:220px;overflow:auto}
 .hd-grades{margin:4px 0;padding-inline-start:18px;line-height:1.9}
 .q-hit.on{outline:2px solid #0B4C52}
