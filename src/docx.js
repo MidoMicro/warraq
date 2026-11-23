@@ -243,7 +243,7 @@ function docxBuilder() {
     if (!PV.exact) { const was = document.body.classList.contains('pages-mode'); paginate(); if (!was) document.body.classList.remove('pages-mode'); }
     renderToc();
     const body = Array.from(page.children).map(block).join('');
-    const ar = s.lang === 'ar', hindi = ar && s.numerals === 'arabic';
+    const ar = s.lang === 'ar', hindi = s.numerals === 'arabic'; // الأرقام تتبع اختيار «١٢٣ / 123»
     const W = s.pageSize === 'letter' ? 12240 : 11906, H = s.pageSize === 'letter' ? 15840 : 16838;
     const mT = twip(s.margins === 'narrow' ? 1.27 : (s.margins === 'wide' ? 2.54 : 2.5)), mS = twip(s.margins === 'narrow' ? 1.27 : (s.margins === 'wide' ? 5.08 : 2.5));
     const line = { '1': 240, '115': 276, '15': 360, '2': 480 }[s.lineSpacing] || 360;
@@ -255,7 +255,7 @@ function docxBuilder() {
       pgBordersXml(s) + '<w:pgNumType w:fmt="' + (hindi ? 'hindiNumbers' : 'decimal') + '"/>' + (hideFirst ? '<w:titlePg/>' : '') + (ar ? '<w:bidi/>' : '') + '</w:sectPr>';
     const documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ' + NS + '><w:body>' + body + sect + '</w:body></w:document>';
     const rPrDef = '<w:rFonts w:ascii="' + X(docFont) + '" w:hAnsi="' + X(docFont) + '" w:cs="' + X(docFont) + '" w:eastAsia="' + X(docFont) + '"/><w:sz w:val="32"/><w:szCs w:val="32"/><w:lang w:val="en-US" w:bidi="ar-EG"/>';
-    const hs = (id, name, sz, color, lvl) => '<w:style w:type="paragraph" w:styleId="' + id + '"><w:name w:val="' + name + '"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="240" w:after="120"/>' + (lvl !== undefined ? '<w:outlineLvl w:val="' + lvl + '"/>' : '') + '</w:pPr><w:rPr><w:b/><w:bCs/><w:color w:val="' + color + '"/><w:sz w:val="' + sz + '"/><w:szCs w:val="' + sz + '"/></w:rPr></w:style>';
+    const hs = (id, name, sz, color, lvl) => '<w:style w:type="paragraph" w:styleId="' + id + '"><w:name w:val="' + name + '"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="240" w:after="120"/>' + (lvl !== undefined ? '<w:outlineLvl w:val="' + lvl + '"/>' : '') + '</w:pPr><w:rPr>' + (s.headFont ? '<w:rFonts w:ascii="' + X(s.headFont) + '" w:hAnsi="' + X(s.headFont) + '" w:cs="' + X(s.headFont) + '"/>' : '') + '<w:b/><w:bCs/><w:color w:val="' + color + '"/><w:sz w:val="' + sz + '"/><w:szCs w:val="' + sz + '"/></w:rPr></w:style>';
     const stylesXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
       '<w:docDefaults><w:rPrDefault><w:rPr>' + rPrDef + '</w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="80" w:line="' + line + '" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>' +
       '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>' +

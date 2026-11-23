@@ -1,8 +1,25 @@
 /* ===== ui: الشريط والتبويبات والنوافذ وشريط الحالة والتشغيل ===== */
 const FONTS = [
-  ['Amiri', 'أميري / Amiri'], ['Noto Naskh Arabic', 'نوتو نسخ / Noto Naskh'], ['Cairo', 'كايرو / Cairo'], ['Tajawal', 'تجو\u0651ال / Tajawal'],
+  ['Amiri', 'أميري / Amiri'], ['Noto Naskh Arabic', 'نوتو نسخ / Noto Naskh'], ['Scheherazade New', 'شهرزاد / Scheherazade'], ['Lateef', 'لطيف / Lateef'],
+  ['Markazi Text', 'مركزي / Markazi'], ['IBM Plex Sans Arabic', 'IBM Plex Arabic'], ['Noto Kufi Arabic', 'نوتو كوفي / Noto Kufi'], ['Cairo', 'كايرو / Cairo'],
+  ['Tajawal', 'تجو\u0651ال / Tajawal'], ['Almarai', 'المراعي / Almarai'], ['Readex Pro', 'Readex Pro'], ['El Messiri', 'المسيري / El Messiri'], ['Changa', 'تشانجا / Changa'],
   ['Times New Roman', 'Times New Roman'], ['Arial', 'Arial']
 ];
+/* خطوط الجهاز الشائعة في الرسائل (ليست داخل ورّاق لأن رخصها خاصة): تظهر فقط إن كانت مثبتة */
+const SYS_FONTS = ['Dubai', 'Traditional Arabic', 'Simplified Arabic', 'Sakkal Majalla', 'Arabic Typesetting', 'Aldhabi', 'Andalus', 'Segoe UI', 'Calibri', 'Cambria'];
+let _sysFonts = null;
+function systemFonts() {
+  if (_sysFonts) return _sysFonts;
+  const c = document.createElement('canvas').getContext('2d'), txt = 'بسم الله الرحمن الرحيم abcdefghij WMwm 0123';
+  const w = (f) => { c.font = '32px ' + f; return c.measureText(txt).width; };
+  const base = ['monospace', 'serif', 'sans-serif'].map((g) => [g, w(g)]);
+  _sysFonts = SYS_FONTS.filter((f) => base.some(([g, bw]) => Math.abs(w("'" + f + "'," + g) - bw) > 0.5));
+  return _sysFonts;
+}
+function fontOptions(extra) {
+  const sys = systemFonts();
+  return (extra || []).concat(FONTS, sys.length ? [[null, '— ' + t('sysFonts') + ' —']].concat(sys.map((f) => [f, f])) : []);
+}
 const SIZES = [10, 11, 12, 13, 14, 16, 18, 20, 24, 28, 32];
 const TABS = [
   { id: 'file', key: 'tabFile' }, { id: 'home', key: 'tabHome' }, { id: 'insert', key: 'tabInsert' }, { id: 'table', key: 'tabTable' },
@@ -34,7 +51,7 @@ function rsel(title, options, value, onchange) {
   const s = el('select', { class: 'rsel', title, 'aria-label': title,
     onmousedown: saveRange, onfocus: saveRange,
     onchange: (e) => { restoreRange(); onchange(e.target.value); } });
-  options.forEach(([v, label]) => { const o = el('option', { value: v }); o.textContent = label; if (String(v) === String(value)) o.selected = true; s.append(o); });
+  options.forEach(([v, label]) => { const o = el('option', { value: v === null ? '' : v }); if (v === null) o.disabled = true; o.textContent = label; if (v !== null && String(v) === String(value)) o.selected = true; s.append(o); });
   return s;
 }
 function saveRange() {
@@ -79,7 +96,7 @@ function renderRibbon() {
       break;
     case 'home':
       add(rb('↶', t('undo'), () => cmd('undo')), rb('↷', t('redo'), () => cmd('redo')), sep(),
-        rsel(t('font'), FONTS, '', setFont),
+        rsel(t('font'), fontOptions(), '', (v) => { if (v) setFont(v); }),
         rsel(t('size'), SIZES.map((n) => [n, String(n)]), 16, (v) => setFontSize(+v)), sep(),
         rb('<b>B</b>', t('bold'), () => cmd('bold'), '', { state: 'bold' }),
         rb('<i>I</i>', t('italic'), () => cmd('italic'), '', { state: 'italic' }),
@@ -140,7 +157,11 @@ function renderRibbon() {
         rb('◷ ' + t('snapshots'), t('snapshots'), openSnapshotsDialog));
       break;
     case 'layout':
-      add(el('span', { class: 'rlabel', html: escapeHtml(t('docLang')) }),
+      add(el('span', { class: 'rlabel', html: escapeHtml(t('docFont')) }),
+        rsel(t('docFont'), fontOptions(), s.docFont || 'Amiri', (v) => { if (v) setSetting('docFont', v); }),
+        el('span', { class: 'rlabel', html: escapeHtml(t('headFont')) }),
+        rsel(t('headFont'), fontOptions([['', t('sameAsDoc')]]), s.headFont || '', (v) => setSetting('headFont', v)), sep(),
+        el('span', { class: 'rlabel', html: escapeHtml(t('docLang')) }),
         rsel(t('docLang'), [['ar', t('langAr')], ['en', t('langEn')], ['fr', t('langFr')]], s.lang, setDocLang), sep(),
         el('span', { class: 'rlabel', html: escapeHtml(t('pageSize')) }),
         rsel(t('pageSize'), [['a4', 'A4'], ['letter', 'Letter']], s.pageSize, (v) => setSetting('pageSize', v)),
@@ -198,7 +219,32 @@ function setDocLang(lang) {
   applyDocSettings();
   WQ.doc.settings.numerals = lang === 'ar' ? 'arabic' : 'western';
   convertAllNumerals();
+  normalizeBlocks(); renderCitations();
   markDirty(); renderRibbon(); updateStatus();
+}
+/* لغة المستند من الشريط السفلي */
+function openDocLangDialog() {
+  const cur = WQ.doc.settings.lang;
+  showModal({ title: t('docLang'), body: '<p class="wq-note" style="font-size:12px;line-height:1.8">' + E(t('docLangHelp')) + '</p><div class="chips">' +
+    ['ar', 'en', 'fr'].map((l) => '<button class="chip' + (l === cur ? ' on' : '') + '" data-l="' + l + '">' + E(t({ ar: 'langAr', en: 'langEn', fr: 'langFr' }[l])) + '</button>').join('') + '</div>',
+    actions: [{ label: t('close') }],
+    onOpen: (m) => $$('.chip[data-l]', m).forEach((c) => c.onclick = () => { if (c.dataset.l !== WQ.doc.settings.lang) setDocLang(c.dataset.l); $('#modalRoot').innerHTML = ''; toast(t('docLang') + ': ' + I18N[WQ.ui].langLabel[c.dataset.l]); }) });
+}
+/* تنبيه مرة واحدة: لغة المستند لا تطابق لغة أغلب النص */
+function checkLangHint(text) {
+  const d = WQ.doc; if (!d || d.settings.langHint === 'off' || $('#langHint')) return;
+  WQ._langHinted = WQ._langHinted || {};
+  if (WQ._langHinted[d.meta.id]) return;
+  const ar = (text.match(/[\u0600-\u06FF]/g) || []).length, la = (text.match(/[A-Za-z]/g) || []).length;
+  if (ar + la < 150) return;
+  const sug = d.settings.lang !== 'ar' && ar / (ar + la) > 0.7 ? 'ar' : (d.settings.lang === 'ar' && la / (ar + la) > 0.7 ? 'en' : '');
+  if (!sug) return;
+  WQ._langHinted[d.meta.id] = true;
+  const bar = el('div', { id: 'langHint', class: 'lang-hint no-print', role: 'status' });
+  bar.append(el('span', { html: E(t(sug === 'ar' ? 'langHintAr' : 'langHintEn')) }),
+    el('button', { class: 'btn', html: E(t(sug === 'ar' ? 'langHintYesAr' : 'langHintYesEn')), onclick: () => { bar.remove(); setDocLang(sug); } }),
+    el('button', { class: 'btn2', html: E(t('langHintNo')), onclick: () => { bar.remove(); d.settings.langHint = 'off'; markDirty(); } }));
+  document.body.append(bar);
 }
 
 /* ---------- النوافذ ---------- */
@@ -268,6 +314,8 @@ function updateStatus() {
   $('#stGoal').textContent = t('dailyGoal') + ': ' + fmtNum(today) + ' / ' + fmtNum(p.dailyGoal);
   const s = WQ.doc.settings;
   $('#stLang').textContent = t('docLang') + ': ' + I18N[WQ.ui].langLabel[s.lang] + ' · ' + (s.numerals === 'arabic' ? '١٢٣' : '123');
+  $('#stLang').title = t('docLangHelp');
+  checkLangHint(page.innerText || '');
 }
 
 /* ---------- تفضيلات الواجهة ---------- */
@@ -301,6 +349,7 @@ function boot() {
   initPagesEvents();
   initTableMenu();
   initTashkeelEvents();
+  initHadithEvents();
   restoreOrNew();
   applyPrefs();
   applyUiLang();
@@ -315,6 +364,7 @@ function boot() {
     const r = new FileReader(); r.onload = () => { restoreRange(); insertImage(String(r.result)); }; r.readAsDataURL(f);
   });
   $('#stGoal').onclick = openGoalDialog;
+  $('#stLang').onclick = openDocLangDialog;
   page.addEventListener('blur', saveRange);
   document.addEventListener('keydown', (e) => {
     const mod = e.ctrlKey || e.metaKey;

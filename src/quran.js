@@ -57,7 +57,7 @@ function insertAyah(s, a, b, opt) {
   if (opt.where === 'text') html += ' <span class="wq-ayah-ref" contenteditable="false">[' + E(ayahRef(s, a, b)) + ']</span>';
   if (opt.block) {
     insertHtml('<p dir="rtl" style="text-align: center">' + html + '</p><p dir="auto"><br></p>');
-  } else insertHtml(html + '&nbsp;');
+  } else hdInsertInline(html + '&nbsp;'); // داخل الفقرة نفسها (انظر hadith.js)
   if (opt.where === 'note') {
     // نضع مؤشر الحاشية بعد الآية مباشرة
     const spans = $$('.wq-ayah', page); const last = spans.filter((x) => +x.dataset.s === s && +x.dataset.a === a).pop();

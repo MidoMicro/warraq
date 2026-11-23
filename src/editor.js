@@ -42,6 +42,13 @@ function applyDocSettings() {
   page.classList.add('ls-' + s.lineSpacing);
   page.classList.toggle('num-ar', s.numerals === 'arabic' && s.lang === 'ar');
   page.dataset.placeholder = t('placeholder');
+  // خط المستند وخط العناوين (يشملان عرض الصفحات والطباعة وPDF وWord)
+  const rs = document.documentElement.style;
+  const fontOk = (f) => typeof f === 'string' && /^[A-Za-z0-9 \-]{1,40}$/.test(f);
+  if (!fontOk(s.docFont)) delete s.docFont;
+  if (s.headFont && !fontOk(s.headFont)) delete s.headFont;
+  if (s.docFont) rs.setProperty('--doc-font', "'" + s.docFont + "','Amiri','Noto Naskh Arabic',serif"); else rs.removeProperty('--doc-font');
+  if (s.headFont) rs.setProperty('--head-font', "'" + s.headFont + "','Amiri',sans-serif"); else rs.removeProperty('--head-font');
   page.classList.toggle('ruled', isRuled());
   updateRuling();
 }
@@ -74,6 +81,7 @@ function updateRuling() {
 
 
 /* كل فقرة تأخذ اتجاهها من أول حرف قوي فيها (عربي ← يمين، لاتيني ← يسار) */
+const STRONG_RE = /[A-Za-z\u00C0-\u024F\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/;
 function normalizeBlocks() {
   // نص مكتوب مباشرة في الصفحة بدون فقرة ← نلفه في فقرة
   Array.from(page.childNodes).forEach((n) => {
@@ -81,8 +89,16 @@ function normalizeBlocks() {
       const p = document.createElement('p'); n.replaceWith(p); p.appendChild(n);
     }
   });
+  const docDir = WQ.doc && WQ.doc.settings.lang === 'ar' ? 'rtl' : 'ltr';
   $$(BLOCK_SEL, page).forEach((b) => {
     if (!b.hasAttribute('dir')) b.setAttribute('dir', 'auto');
+    // الفقرة الفارغة (بلا حرف عربي أو لاتيني) تأخذ اتجاه لغة المستند، فيبدأ المؤشر في مكانه الصحيح.
+    // وأول ما يُكتب فيها حرف ترجع لاتجاه أول حرف (data-ad = اتجاه مؤقت)
+    if (!b.querySelector(BLOCK_SEL)) {
+      const strong = STRONG_RE.test(b.textContent);
+      if (!strong) { if (b.getAttribute('dir') !== docDir || !b.dataset.ad) { b.setAttribute('dir', docDir); b.dataset.ad = '1'; } }
+      else if (b.dataset.ad) { b.setAttribute('dir', 'auto'); delete b.dataset.ad; }
+    }
     // الآية والحديث المحميان لهما اتجاه خاص، فالمتصفح يتجاهل حروفهما عند حساب اتجاه الفقرة (dir=auto)،
     // فتصير الفقرة التي لا نص فيها غيرهما من اليسار. نحدد الاتجاه من أول حرف قوي في الفقرة كلها.
     if (b.getAttribute('dir') === 'auto' && b.querySelector('.wq-hadith,.wq-ayah')) {

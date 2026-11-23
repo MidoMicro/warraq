@@ -36,7 +36,8 @@ function hdDigits(s, lang) { return (lang || hdDefLang()) === 'ar' ? toArabicDig
 function hdGet(bk, key) { const B = HD_BOOK[bk]; if (!B) return null; const i = B.map.get(String(key)); return i === undefined ? null : B.h[i]; }
 
 /* بداية المتن (تقريبية): بعد أول «قال رسول الله ﷺ» أو «عن النبي ﷺ قال»؛ وإلا فالنص كاملاً */
-const HD_MATN_RE = /(?:رسول|النبي)\s+(?:الله\s+)?[-–(]?\s*(?:ﷺ|صلى\s+الله\s+عليه\s+و\s*سلم)\s*[-–)]?\s*[،,]?\s*(?:أنه\s+)?(?:قال|يقول)?\s*[:،,]?\s*/;
+// بداية المتن: «قال رسول الله ﷺ: …» أو «رسول الله ﷺ قال/يقول: …» (الفعل بلا فاء؛ «سأل رسول الله ﷺ فقال» ليست بداية المتن)
+const HD_MATN_RE = /(?:(?<![\u0621-\u064A])قال\s+(?:رسول\s+الله|النبي)\s+[-–(]?\s*(?:ﷺ|صلى\s+الله\s+عليه\s+و\s*سلم)\s*[-–)]?\s*[:،,]?\s*)|(?:(?:رسول|النبي)\s+(?:الله\s+)?[-–(]?\s*(?:ﷺ|صلى\s+الله\s+عليه\s+و\s*سلم)\s*[-–)]?\s*[،,]?\s*(?:أنه\s+)?(?:قال|يقول)\s*[:،,]?\s*)/;
 function hdMatnStart(text) {
   // نبحث في نص بلا تشكيل (ترتيب علامات التشكيل يختلف بين المصادر) ثم نعيد الموضع إلى النص الأصلي
   let bare = ''; const map = [];
@@ -51,8 +52,18 @@ function hdMatnStart(text) {
 function hdSlice(text, o, e) { return text.slice(o || 0, e || text.length).trim(); }
 /* ظبط علامات الترقيم في النص المُدرج (الحروف والتشكيل كما هي في المصدر):
    لا مسافة قبل ، : ؛ . ؟ !، ومسافة واحدة بعدها، وعلامة " التي ليس لها نظير تُحذف، والمسافات داخل "…" تُزال */
+/* صيغ الصلاة والترضي التي يكتبها المصدر بلا تشكيل داخل نص مشكول: تُشكَّل بصيغتها الصحيحة (ولا تُلمس أي كلمة أخرى) */
+const HD_HONOR = [
+  [/(^|[^\u0621-\u0652])صلى الله عليه و ?سلم(?![\u0621-\u0652])/g, '$1صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ'],
+  [/(^|[^\u0621-\u0652])رض[يى] الله عنهما(?![\u0621-\u0652])/g, '$1رَضِيَ اللَّهُ عَنْهُمَا'],
+  [/(^|[^\u0621-\u0652])رض[يى] الله عنها(?![\u0621-\u0652])/g, '$1رَضِيَ اللَّهُ عَنْهَا'],
+  [/(^|[^\u0621-\u0652])رض[يى] الله عنهم(?![\u0621-\u0652])/g, '$1رَضِيَ اللَّهُ عَنْهُمْ'],
+  [/(^|[^\u0621-\u0652])رض[يى] الله عنه(?![\u0621-\u0652])/g, '$1رَضِيَ اللَّهُ عَنْهُ']
+];
 function hdTypo(s) {
-  s = String(s).replace(/\s+/g, ' ').replace(/\s+([،:؛.؟!,)\]])/g, '$1').replace(/([(\[])\s+/g, '$1')
+  s = String(s);
+  HD_HONOR.forEach(([re, rep]) => { s = s.replace(re, rep); });
+  s = s.replace(/\s+/g, ' ').replace(/\s+([،:؛.؟!,)\]])/g, '$1').replace(/([(\[])\s+/g, '$1')
     .replace(/([،:؛؟!,])(?=[^\s"«»)\]،:؛.؟!,])/g, '$1 ');
   const q = []; for (let i = 0; i < s.length; i++) if (s[i] === '"') q.push(i);
   if (q.length % 2) { const k = q.pop(); s = s.slice(0, k) + ' ' + s.slice(k + 1); } // علامة بلا نظير
@@ -99,16 +110,42 @@ function hdAddFootnoteAfter(node, text) {
   const sup = document.createElement('sup'); sup.className = 'wq-fn'; sup.dataset.fn = id; sup.contentEditable = 'false'; sup.textContent = '*';
   node.after(sup);
 }
+/* إدراج داخل الفقرة نفسها: insertHTML في Chrome يضع العنصر المحمي خارج الفقرة إذا كان المؤشر في آخرها */
+function hdInsertInline(html) {
+  focusPage();
+  const sel = document.getSelection();
+  let r = sel.rangeCount && page.contains(sel.getRangeAt(0).startContainer) ? sel.getRangeAt(0) : null;
+  if (!r) { const p = el('p', { dir: 'auto' }); page.append(p); r = document.createRange(); r.setStart(p, 0); }
+  r.deleteContents();
+  let host = r.startContainer.nodeType === 3 ? r.startContainer.parentNode : r.startContainer;
+  if (host === page) { // المؤشر بين الفقرات: نُنشئ فقرة
+    const p = el('p', { dir: 'auto' }); page.insertBefore(p, page.childNodes[r.startOffset] || null);
+    r = document.createRange(); r.setStart(p, 0); host = p;
+  }
+  const blk = host.closest(BLOCK_SEL) || host;
+  if (!blk.textContent.trim() && !blk.querySelector('img,sup,.wq-ayah,.wq-hadith')) { blk.innerHTML = ''; r = document.createRange(); r.setStart(blk, 0); }
+  const tpl = document.createElement('template'); tpl.innerHTML = html;
+  const lastNode = tpl.content.lastChild;
+  r.insertNode(tpl.content);
+  if (lastNode) { const c = document.createRange(); c.setStartAfter(lastNode); c.collapse(true); sel.removeAllRanges(); sel.addRange(c); }
+  onInput();
+}
 function insertHadith(bk, key, opt) {
-  const o = opt.matn ? hdMatnStart(hdGet(bk, key)[1]) : 0;
+  const o = opt.o !== undefined && opt.o !== null ? opt.o : (opt.matn ? hdMatnStart(hdGet(bk, key)[1]) : 0);
   let html = hadithSpan(bk, key, o, 0);
   if (opt.where === 'text') html += ' [' + E(hdTakhrij(bk, key, false, opt.lang).replace(/\.$/, '')) + ']';
-  insertHtml(html + '&nbsp;');
-  if (opt.where === 'note') {
-    const last = $$('.wq-hadith', page).filter((x) => x.dataset.bk === bk && x.dataset.k === String(key)).pop();
-    if (last) hdAddFootnoteAfter(last, hdTakhrij(bk, key, opt.grades, opt.lang));
+  hdInsertInline(html + '&nbsp;');
+  const last = $$('.wq-hadith', page).filter((x) => x.dataset.bk === bk && x.dataset.k === String(key)).pop();
+  let tail = last;
+  if (opt.where === 'note' && last) { hdAddFootnoteAfter(last, hdTakhrij(bk, key, opt.grades, opt.lang)); tail = last.nextSibling; }
+  // المؤشر بعد رقم الحاشية والمسافة، فأي كتابة أو Enter تأتي بعد الحديث وحاشيته معاً
+  if (tail) {
+    let after = tail.nextSibling;
+    if (!after || after.nodeType !== 3) { after = document.createTextNode('\u00A0'); tail.after(after); }
+    const r = document.createRange(); r.setStart(after, after.textContent.length); r.collapse(true);
+    const sl = document.getSelection(); sl.removeAllRanges(); sl.addRange(r);
   }
-  markDirty(); renderCitations();
+  normalizeBlocks(); markDirty(); renderCitations();
 }
 /* البحث في الدرر السنية: يفتح موقع الدرر في المتصفح (أونلاين)، ولا يُخزّن ورّاق شيئاً */
 function dorarUrl(text) {
@@ -175,11 +212,11 @@ async function openHadithDialog() {
     '<a class="chip" id="hSunnah" target="_blank" rel="noopener" href="https://sunnah.com">' + E(t('hdSunnah')) + '</a></div>' +
     '<div class="chips"><span class="wq-note" style="align-self:center">' + E(t('hdTkLang')) + ':</span><button class="chip' + (hdDefLang() === 'ar' ? ' on' : '') + '" data-l="ar">عربي</button><button class="chip' + (hdDefLang() === 'en' ? ' on' : '') + '" data-l="en">English</button></div>' +
     '<p class="wq-note">' + E(t('hdDorarNote')) + '</p>' + hdCredits();
-  let sel = null, part = 'matn', where = 'note', tkLang = hdDefLang();
+  let sel = null, part = 'matn', where = 'note', tkLang = hdDefLang(), customO = null;
   showModal({ title: t('insertHadith'), body, wide: true,
     actions: [{ label: t('cancel') }, { label: t('insert'), cls: 'btn', run: (m) => {
       if (!sel) { toast(t('hdPick')); return false; }
-      restoreRange(); insertHadith(sel.bk, sel.key, { matn: part === 'matn', where, grades: $('#hWithG', m).checked, lang: tkLang });
+      restoreRange(); insertHadith(sel.bk, sel.key, { matn: part === 'matn', o: part === 'matn' ? customO : 0, where, grades: $('#hWithG', m).checked, lang: tkLang });
     } }],
     onOpen: (m) => {
       const Bk = $('#hBook', m), Nm = $('#hNum', m), Sr = $('#hSearch', m), box = $('#hResults', m);
@@ -192,14 +229,18 @@ async function openHadithDialog() {
         const prev = $('#hPrev', m), gr = $('#hGrades', m);
         if (!sel) { prev.innerHTML = '<p class="wq-note">' + E(t('hdPick')) + '</p>'; gr.innerHTML = ''; return; }
         const it = hdGet(sel.bk, sel.key);
-        const o = part === 'matn' ? hdMatnStart(it[1]) : 0;
-        prev.innerHTML = '<b>' + E(hdRefLabel(sel.bk, sel.key)) + '</b><br><span class="wq-hadith">' + E(hdText(sel.bk, sel.key, o, 0)) + '</span>' +
+        const o = part === 'matn' ? (customO !== null ? customO : hdMatnStart(it[1])) : 0;
+        // النص كله كلمات قابلة للضغط: الضغط على كلمة يجعلها بداية المتن، وما قبلها باهت
+        let words = '', mm; const re = /\S+/g;
+        while ((mm = re.exec(it[1]))) words += '<span class="hw' + (mm.index < o ? ' dim' : '') + '" data-o="' + mm.index + '">' + E(mm[0]) + '</span> ';
+        prev.innerHTML = '<b>' + E(hdRefLabel(sel.bk, sel.key)) + '</b> <span class="wq-note">' + E(t('hdPickStart')) + '</span><br><span class="wq-hadith">' + words + '</span>' +
           (part === 'matn' && !o ? '<p class="wq-note">' + E(t('hdNoMatn')) + '</p>' : '');
+        $$('.hw', prev).forEach((w) => w.onclick = () => { customO = +w.dataset.o; part = 'matn'; $$('.chip[data-p]', m).forEach((x) => x.classList.toggle('on', x.dataset.p === 'matn')); upd(); });
         gr.innerHTML = '<label>' + E(t('hdGrades')) + '</label>' + hdGradesHtml(sel.bk, it);
         $('#hDorar', m).href = dorarUrl(hdSlice(it[1], hdMatnStart(it[1])));
         $('#hSunnah', m).href = sunnahUrl(sel.bk, sel.key, hdSlice(it[1], hdMatnStart(it[1])));
       };
-      const pick = (bk, key) => { sel = { bk, key }; $$('.q-hit', box).forEach((h) => h.classList.toggle('on', h.dataset.bk === bk && h.dataset.k === key)); upd(); };
+      const pick = (bk, key) => { sel = { bk, key }; customO = null; $$('.q-hit', box).forEach((h) => h.classList.toggle('on', h.dataset.bk === bk && h.dataset.k === key)); upd(); };
       const ensure = async (ids) => {
         for (const id of ids) if (!HD_BOOK[id]) { box.innerHTML = '<p class="wq-note">' + E(t('hdLoading')) + ' ' + E(hdBookName(id)) + '</p>'; await loadHadithBook(id); }
       };
@@ -228,7 +269,7 @@ async function openHadithDialog() {
           listHits(searchHadith(ids, Sr.value));
         }, 250);
       };
-      $$('.chip[data-p]', m).forEach((c) => c.onclick = () => { part = c.dataset.p; $$('.chip[data-p]', m).forEach((x) => x.classList.toggle('on', x === c)); upd(); });
+      $$('.chip[data-p]', m).forEach((c) => c.onclick = () => { part = c.dataset.p; customO = null; $$('.chip[data-p]', m).forEach((x) => x.classList.toggle('on', x === c)); upd(); });
       $$('.chip[data-l]', m).forEach((c) => c.onclick = () => { tkLang = c.dataset.l; $$('.chip[data-l]', m).forEach((x) => x.classList.toggle('on', x === c)); });
       $$('.chip[data-w]', m).forEach((c) => c.onclick = () => { where = c.dataset.w; $$('.chip[data-w]', m).forEach((x) => x.classList.toggle('on', x === c)); $('#hWithG', m).disabled = where !== 'note'; });
       showNumbering();
@@ -363,4 +404,58 @@ async function verifyHadithQuotes(onlySelection) {
       const x = res[+b.dataset.i];
       if (replaceHadithCandidate(x.c, x.r, true)) b.replaceWith(el('span', { class: 'qv-done', html: '✓ ' + E(t('qvReplaced')) }));
     }) });
+}
+
+/* ---------- قائمة الضغط على الحديث المُدرج ---------- */
+function closeHdMenu() { const x = document.getElementById('hdMenu'); if (x) x.remove(); }
+function hdSetPart(sp, matn) {
+  const it = hdGet(sp.dataset.bk, sp.dataset.k); if (!it) return;
+  const o = matn ? hdMatnStart(it[1]) : 0;
+  if (o) sp.dataset.o = o; else delete sp.dataset.o;
+  delete sp.dataset.e;
+  sp.textContent = hdText(sp.dataset.bk, sp.dataset.k, o, 0);
+  normalizeBlocks(); markDirty(); refreshDerivedSoon();
+  return o;
+}
+function hdDelete(sp) {
+  const nx = sp.nextSibling;
+  if (nx && nx.nodeType === 1 && nx.classList.contains('wq-fn')) { delete WQ.doc.footnotes[nx.dataset.fn]; nx.remove(); }
+  sp.remove(); normalizeBlocks(); markDirty(); renderCitations();
+}
+function hdInfo(sp) {
+  const bk = sp.dataset.bk, key = sp.dataset.k, it = hdGet(bk, key); if (!it) return;
+  const b = HD_BOOK[bk].meta;
+  showModal({ title: hdRefLabel(bk, key), wide: true, body:
+    '<p><b>' + E(WQ.ui === 'ar' ? b.name : b.en) + '</b> · ' + E(t('hdNumbering')) + ': ' + E(b.numbering) + '</p>' +
+    '<label>' + E(t('hdTakhrijLbl')) + '</label><div class="preview-box">' + E(hdTakhrij(bk, key, true)) + '</div>' +
+    '<label>' + E(t('hdGrades')) + '</label>' + hdGradesHtml(bk, it) +
+    '<div class="chips"><a class="chip" target="_blank" rel="noopener" href="' + E(dorarUrl(hdSlice(it[1], hdMatnStart(it[1])))) + '">' + E(t('hdDorar')) + '</a>' +
+    '<a class="chip" target="_blank" rel="noopener" href="' + E(sunnahUrl(bk, key, hdSlice(it[1], hdMatnStart(it[1])))) + '">' + E(t('hdSunnah')) + '</a></div>' + hdCredits(),
+    actions: [{ label: t('close'), cls: 'btn' }] });
+}
+function initHadithEvents() {
+  page.addEventListener('click', async (e) => {
+    const sp = e.target.closest && e.target.closest('.wq-hadith'); if (!sp || !page.contains(sp)) return;
+    closeHdMenu();
+    try { await loadHadithBook(sp.dataset.bk); } catch (er) { toast(t('hdUnavailable')); return; }
+    const hasMatn = !!hdMatnStart((hdGet(sp.dataset.bk, sp.dataset.k) || [0, ''])[1]);
+    const m = el('div', { class: 'ctx-menu', id: 'hdMenu', role: 'menu' });
+    const item = (label, run, dis) => m.append(el('button', { class: 'ctx-item', role: 'menuitem', html: E(label), ...(dis ? { disabled: 'disabled' } : {}), onmousedown: (ev) => ev.preventDefault(),
+      onclick: () => { closeHdMenu(); run(); } }));
+    const isMatn = !!sp.dataset.o;
+    m.append(el('div', { class: 'wq-note', style: 'padding:4px 10px', html: E(hdRefLabel(sp.dataset.bk, sp.dataset.k)) }));
+    if (isMatn) item(t('hdFull'), () => hdSetPart(sp, false));
+    else item(t('hdMenuMatn'), () => { if (!hdSetPart(sp, true)) toast(t('hdNoMatnShort')); }, !hasMatn);
+    item(t('hdMenuInfo'), () => hdInfo(sp));
+    item(t('hdDorar'), () => window.open(dorarUrl(sp.textContent), '_blank', 'noopener'));
+    item(t('hdSunnah'), () => window.open(sunnahUrl(sp.dataset.bk, sp.dataset.k, sp.textContent), '_blank', 'noopener'));
+    m.append(el('div', { class: 'ctx-sep' }));
+    item(t('hdMenuDelete'), () => hdDelete(sp));
+    document.body.append(m);
+    const r = sp.getBoundingClientRect();
+    m.style.left = Math.max(6, Math.min(e.clientX, innerWidth - m.offsetWidth - 6)) + 'px';
+    m.style.top = Math.min(e.clientY + 8, innerHeight - m.offsetHeight - 6) + 'px';
+  });
+  document.addEventListener('mousedown', (e) => { if (!e.target.closest('#hdMenu')) closeHdMenu(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeHdMenu(); });
 }

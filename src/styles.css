@@ -70,6 +70,7 @@ body.hide-nav.hide-ref .workspace{grid-template-columns:minmax(0,1fr)}
 .page{font-size:16pt;line-height:1.5;outline:none;text-align:justify;word-wrap:break-word;min-height:20cm;position:relative}
 .page.ls-1{line-height:1.15}.page.ls-15{line-height:1.5}.page.ls-2{line-height:2}.page.ls-115{line-height:1.3}
 .page p{margin:0 0 .4em}
+.page h1,.page h2,.page h3,.wq-block-title{font-family:var(--head-font,inherit)}
 .page h1{font-size:1.6em;color:var(--primary);margin:.6em 0 .3em;font-weight:700}
 .page h2{font-size:1.3em;color:var(--primary);margin:.5em 0 .3em;font-weight:700}
 .page h3{font-size:1.1em;color:#33504F;margin:.4em 0 .2em;font-weight:700}
@@ -179,6 +180,11 @@ body.pages-mode .pages-view{display:flex;flex-direction:column;gap:24px;align-it
 .hd-prev{font-size:16px;line-height:2;max-height:220px;overflow:auto}
 .hd-grades{margin:4px 0;padding-inline-start:18px;line-height:1.9}
 .q-hit.on{outline:2px solid #0B4C52}
+.hd-prev .hw{cursor:pointer;border-radius:3px}
+.hd-prev .hw:hover{background:#FAEEDA}
+.hd-prev .hw.dim{opacity:.4}
+#page .wq-hadith{cursor:pointer}
+.ctx-item[disabled]{opacity:.45;cursor:default}
 .ayah-prev{font-size:18px;text-align:center;line-height:2.2}
 .q-results{max-height:150px;overflow:auto;margin:-4px 0 10px}
 .q-hit{display:block;width:100%;text-align:start;background:#fff;border:1px solid var(--line);border-radius:6px;padding:4px 8px;margin-bottom:4px;font-family:'Amiri',serif;font-size:14px}
@@ -212,6 +218,8 @@ body.focus .focus-exit{display:block}
 .statusbar{background:var(--primary);color:#CFE3E1;display:flex;justify-content:space-between;align-items:center;padding:3px 12px;font-size:12px;gap:10px}
 .st-btn{background:none;border:none;color:#CFE3E1;font-size:12px;padding:0}
 .st-btn:hover{color:#fff;text-decoration:underline}
+.lang-hint{position:fixed;bottom:34px;inset-inline-start:50%;transform:translateX(50%);z-index:45;background:var(--paper);border:1px solid var(--accent);border-radius:10px;box-shadow:0 6px 20px #0003;padding:8px 12px;display:flex;gap:10px;align-items:center;font-size:13px;max-width:92vw}
+[dir=ltr] .lang-hint{transform:translateX(-50%)}
 .app-ver{opacity:.7;direction:ltr}
 
 /* modal */
