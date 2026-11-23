@@ -81,7 +81,15 @@ function normalizeBlocks() {
       const p = document.createElement('p'); n.replaceWith(p); p.appendChild(n);
     }
   });
-  $$(BLOCK_SEL, page).forEach((b) => { if (!b.hasAttribute('dir')) b.setAttribute('dir', 'auto'); });
+  $$(BLOCK_SEL, page).forEach((b) => {
+    if (!b.hasAttribute('dir')) b.setAttribute('dir', 'auto');
+    // الآية والحديث المحميان لهما اتجاه خاص، فالمتصفح يتجاهل حروفهما عند حساب اتجاه الفقرة (dir=auto)،
+    // فتصير الفقرة التي لا نص فيها غيرهما من اليسار. نحدد الاتجاه من أول حرف قوي في الفقرة كلها.
+    if (b.getAttribute('dir') === 'auto' && b.querySelector('.wq-hadith,.wq-ayah')) {
+      const m = b.textContent.match(/[A-Za-z\u00C0-\u024F\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/);
+      if (m) b.setAttribute('dir', /[A-Za-z\u00C0-\u024F]/.test(m[0]) ? 'ltr' : 'rtl');
+    }
+  });
 }
 
 function currentBlock() {

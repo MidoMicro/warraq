@@ -30,7 +30,9 @@ const HD_PUNCT = /[،؛؟۔.,:;!?"'«»“”„()[\]{}\-–—_*/\\|<>]/g;
 function hdNorm(s) { return normAr(String(s).replace(HD_PUNCT, ' ')); }
 function hdNormBook(B) { if (!B.norm) B.norm = B.h.map((x) => ' ' + hdNorm(x[1]) + ' '); return B.norm; }
 const hdNum = (key) => String(key).split('.')[0];
-function hdDigits(s) { return WQ.doc.settings.lang === 'ar' ? toArabicDigits(String(s)) : String(s); }
+/* لغة التخريج والأحكام: عربي افتراضياً مع الواجهة العربية (الحديث عربي)، ويختار المستخدم English من النافذة */
+function hdDefLang() { return WQ.ui === 'ar' || WQ.doc.settings.lang === 'ar' ? 'ar' : 'en'; }
+function hdDigits(s, lang) { return (lang || hdDefLang()) === 'ar' ? toArabicDigits(String(s)) : String(s); }
 function hdGet(bk, key) { const B = HD_BOOK[bk]; if (!B) return null; const i = B.map.get(String(key)); return i === undefined ? null : B.h[i]; }
 
 /* بداية المتن (تقريبية): بعد أول «قال رسول الله ﷺ» أو «عن النبي ﷺ قال»؛ وإلا فالنص كاملاً */
@@ -61,25 +63,26 @@ function hdTypo(s) {
 }
 
 /* أحكام العلماء: [اسم العالم بالعربية، الحكم بالعربية (أو الأصل إن لم تتوفر ترجمة دقيقة)، الأصل الإنجليزي] */
-function hdGrades(bk, item) {
+function hdGrades(bk, item, lang) {
   const B = HD_BOOK[bk]; if (!B || !item[2]) return [];
-  const ar = WQ.doc.settings.lang === 'ar';
+  const ar = (lang || hdDefLang()) === 'ar';
   return item[2].map((gi) => { const g = B.g[gi]; return { who: ar ? (HD_INDEX.graders[g[0]] || g[0]) : g[0], grade: ar ? (g[1] || g[2]) : g[2], en: g[2] }; });
 }
-function hdBookName(bk, short) {
+function hdBookName(bk, short, lang) {
   const b = HD_BOOK[bk] ? HD_BOOK[bk].meta : (HD_INDEX && HD_INDEX.books.find((x) => x.id === bk));
   if (!b) return bk;
-  const ar = WQ.doc.settings.lang === 'ar';
+  const ar = (lang || hdDefLang()) === 'ar';
   return ar ? (short ? b.short : b.name) : (short ? b.enShort : b.en);
 }
-function hdRefLabel(bk, key) { return hdBookName(bk, true) + ' (' + hdDigits(hdNum(key)) + ')'; }
+function hdRefLabel(bk, key, lang) { return hdBookName(bk, true, lang) + ' (' + hdDigits(hdNum(key), lang) + ')'; }
 /* نص التخريج: «أخرجه البخاري (١).» + الأحكام منسوبة: «قال الألباني: صحيح.» */
-function hdTakhrij(bk, key, withGrades) {
-  const ar = WQ.doc.settings.lang === 'ar';
-  let s = ar ? 'أخرجه ' + hdRefLabel(bk, key) + '.' : 'Narrated by ' + hdRefLabel(bk, key) + '.';
+function hdTakhrij(bk, key, withGrades, lang) {
+  lang = lang || hdDefLang();
+  const ar = lang === 'ar';
+  let s = ar ? 'أخرجه ' + hdRefLabel(bk, key, lang) + '.' : 'Narrated by ' + hdRefLabel(bk, key, lang) + '.';
   if (withGrades) {
     const it = hdGet(bk, key);
-    const gs = it ? hdGrades(bk, it) : [];
+    const gs = it ? hdGrades(bk, it, lang) : [];
     if (gs.length) s += ' ' + gs.map((g) => ar ? 'قال ' + g.who + ': ' + g.grade + '.' : 'Graded “' + g.grade + '” by ' + g.who + '.').join(' ');
   }
   return s;
@@ -99,11 +102,11 @@ function hdAddFootnoteAfter(node, text) {
 function insertHadith(bk, key, opt) {
   const o = opt.matn ? hdMatnStart(hdGet(bk, key)[1]) : 0;
   let html = hadithSpan(bk, key, o, 0);
-  if (opt.where === 'text') html += ' [' + E(hdTakhrij(bk, key, false).replace(/\.$/, '')) + ']';
+  if (opt.where === 'text') html += ' [' + E(hdTakhrij(bk, key, false, opt.lang).replace(/\.$/, '')) + ']';
   insertHtml(html + '&nbsp;');
   if (opt.where === 'note') {
     const last = $$('.wq-hadith', page).filter((x) => x.dataset.bk === bk && x.dataset.k === String(key)).pop();
-    if (last) hdAddFootnoteAfter(last, hdTakhrij(bk, key, opt.grades));
+    if (last) hdAddFootnoteAfter(last, hdTakhrij(bk, key, opt.grades, opt.lang));
   }
   markDirty(); renderCitations();
 }
@@ -111,6 +114,16 @@ function insertHadith(bk, key, opt) {
 function dorarUrl(text) {
   const w = hdNorm(text).split(' ').filter(Boolean).slice(0, 12).join(' ');
   return 'https://dorar.net/hadith/search?q=' + encodeURIComponent(w);
+}
+/* الترجمة الإنجليزية: تفتح الحديث نفسه على sunnah.com في المتصفح (أونلاين، لا يُخزّن شيء) */
+const SUNNAH_DIRECT = { bukhari: 1, muslim: 1, abudawud: 1, tirmidhi: 1, nasai: 1, ibnmajah: 1 };
+function sunnahUrl(bk, key, text) {
+  if (SUNNAH_DIRECT[bk]) {
+    const [n, sub] = String(key).split('.');
+    const letter = bk === 'muslim' && sub && +sub > 0 ? String.fromCharCode(96 + Math.min(26, +sub)) : '';
+    return 'https://sunnah.com/' + bk + ':' + n + letter;
+  }
+  return 'https://sunnah.com/search?q=' + encodeURIComponent(hdNorm(text).split(' ').filter(Boolean).slice(0, 8).join(' '));
 }
 function hdCredits() {
   return '<p class="wq-note" style="line-height:1.8">' + E(t('hdCredit')) +
@@ -158,13 +171,15 @@ async function openHadithDialog() {
     '<div class="chips"><button class="chip on" data-p="matn">' + E(t('hdMatn')) + '</button><button class="chip" data-p="full">' + E(t('hdFull')) + '</button>' +
     '<span style="width:12px"></span><button class="chip on" data-w="note">' + E(t('refInNote')) + '</button><button class="chip" data-w="text">' + E(t('refInText')) + '</button>' +
     '<label style="display:flex;gap:6px;align-items:center;margin:0 8px"><input id="hWithG" type="checkbox" checked style="width:auto;margin:0">' + E(t('hdWithGrades')) + '</label>' +
-    '<a class="chip" id="hDorar" target="_blank" rel="noopener" href="https://dorar.net/hadith">' + E(t('hdDorar')) + '</a></div>' +
+    '<a class="chip" id="hDorar" target="_blank" rel="noopener" href="https://dorar.net/hadith">' + E(t('hdDorar')) + '</a>' +
+    '<a class="chip" id="hSunnah" target="_blank" rel="noopener" href="https://sunnah.com">' + E(t('hdSunnah')) + '</a></div>' +
+    '<div class="chips"><span class="wq-note" style="align-self:center">' + E(t('hdTkLang')) + ':</span><button class="chip' + (hdDefLang() === 'ar' ? ' on' : '') + '" data-l="ar">عربي</button><button class="chip' + (hdDefLang() === 'en' ? ' on' : '') + '" data-l="en">English</button></div>' +
     '<p class="wq-note">' + E(t('hdDorarNote')) + '</p>' + hdCredits();
-  let sel = null, part = 'matn', where = 'note';
+  let sel = null, part = 'matn', where = 'note', tkLang = hdDefLang();
   showModal({ title: t('insertHadith'), body, wide: true,
     actions: [{ label: t('cancel') }, { label: t('insert'), cls: 'btn', run: (m) => {
       if (!sel) { toast(t('hdPick')); return false; }
-      restoreRange(); insertHadith(sel.bk, sel.key, { matn: part === 'matn', where, grades: $('#hWithG', m).checked });
+      restoreRange(); insertHadith(sel.bk, sel.key, { matn: part === 'matn', where, grades: $('#hWithG', m).checked, lang: tkLang });
     } }],
     onOpen: (m) => {
       const Bk = $('#hBook', m), Nm = $('#hNum', m), Sr = $('#hSearch', m), box = $('#hResults', m);
@@ -182,6 +197,7 @@ async function openHadithDialog() {
           (part === 'matn' && !o ? '<p class="wq-note">' + E(t('hdNoMatn')) + '</p>' : '');
         gr.innerHTML = '<label>' + E(t('hdGrades')) + '</label>' + hdGradesHtml(sel.bk, it);
         $('#hDorar', m).href = dorarUrl(hdSlice(it[1], hdMatnStart(it[1])));
+        $('#hSunnah', m).href = sunnahUrl(sel.bk, sel.key, hdSlice(it[1], hdMatnStart(it[1])));
       };
       const pick = (bk, key) => { sel = { bk, key }; $$('.q-hit', box).forEach((h) => h.classList.toggle('on', h.dataset.bk === bk && h.dataset.k === key)); upd(); };
       const ensure = async (ids) => {
@@ -213,6 +229,7 @@ async function openHadithDialog() {
         }, 250);
       };
       $$('.chip[data-p]', m).forEach((c) => c.onclick = () => { part = c.dataset.p; $$('.chip[data-p]', m).forEach((x) => x.classList.toggle('on', x === c)); upd(); });
+      $$('.chip[data-l]', m).forEach((c) => c.onclick = () => { tkLang = c.dataset.l; $$('.chip[data-l]', m).forEach((x) => x.classList.toggle('on', x === c)); });
       $$('.chip[data-w]', m).forEach((c) => c.onclick = () => { where = c.dataset.w; $$('.chip[data-w]', m).forEach((x) => x.classList.toggle('on', x === c)); $('#hWithG', m).disabled = where !== 'note'; });
       showNumbering();
       setTimeout(() => Sr.focus(), 0);
@@ -311,7 +328,7 @@ function replaceHadithCandidate(c, r, addNote) {
   const sp = tpl.content.firstChild;
   rg.deleteContents(); rg.insertNode(tpl.content);
   if (addNote) hdAddFootnoteAfter(sp, hdTakhrij(r.bk, r.key, true));
-  markDirty(); renderCitations();
+  normalizeBlocks(); markDirty(); renderCitations();
   return true;
 }
 async function verifyHadithQuotes(onlySelection) {
