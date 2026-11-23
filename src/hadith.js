@@ -290,6 +290,7 @@ async function verifyHadiths() {
     const want = hdText(bk, sp.dataset.k, o, e);
     if (sp.textContent !== want) sp.textContent = want;
   }
+  if (typeof renderIndexes === 'function') renderIndexes();
 }
 
 /* ---------- التحقق من الأحاديث المكتوبة يدوياً ---------- */
@@ -346,7 +347,7 @@ function matchHadith(text) {
 }
 // المواضع المرشحة: نص بين « » أو “ ” أو " " (٥ كلمات فأكثر) خارج النصوص المدرجة من المصدر
 const HCAND = /«([^»]{12,}?)»|“([^”]{12,}?)”|"([^"]{12,}?)"/g;
-const HD_SKIP = '.wq-ayah,.wq-ayah-ref,.wq-hadith,.wq-toc,.wq-bib';
+const HD_SKIP = '.wq-ayah,.wq-ayah-ref,.wq-hadith,.wq-toc,.wq-bib,.wq-idx-ayat,.wq-idx-hadith';
 function findHadithCandidates() {
   const out = [];
   const tw = document.createTreeWalker(page, NodeFilter.SHOW_TEXT, { acceptNode: (n) => n.parentElement.closest(HD_SKIP) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });

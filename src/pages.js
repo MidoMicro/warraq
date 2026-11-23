@@ -7,6 +7,14 @@ function pageGeom() {
   return { W, H, mt: m.t * CM, ms: m.s * CM, cw: W - 2 * m.s * CM, ch: H - 2 * m.t * CM };
 }
 let PV = { pages: 0, stale: true, headPage: {} };
+/* الترقيم التمهيدي: الصفحات قبل أول فصل (عنوان ١ ليس من المقدمات) بالحروف، ثم ١ من أول فصل */
+const ABJAD = ['أ', 'ب', 'ج', 'د', 'هـ', 'و', 'ز', 'ح', 'ط', 'ي', 'ك', 'ل', 'م', 'ن', 'س', 'ع', 'ف', 'ص', 'ق', 'ر', 'ش', 'ت', 'ث', 'خ', 'ذ', 'ض', 'ظ', 'غ'];
+function toRoman(n) { const v = [[1000, 'm'], [900, 'cm'], [500, 'd'], [400, 'cd'], [100, 'c'], [90, 'xc'], [50, 'l'], [40, 'xl'], [10, 'x'], [9, 'ix'], [5, 'v'], [4, 'iv'], [1, 'i']]; let s = ''; v.forEach(([k, r]) => { while (n >= k) { s += r; n -= k; } }); return s; }
+function frontLabel(n) { return WQ.doc.settings.lang === 'ar' ? (ABJAD[n - 1] || toArabicDigits(String(n))) : toRoman(n); }
+/* أول عنصر من صلب الرسالة: عنوان ١ لا يبدأ بكلمات المقدمات (الإقرار، الإهداء، المستخلص، فهرس…) */
+function bodyStartHeading() { return $$('h1', page).find((h) => h.textContent.trim() && !h.closest('.wq-toc,.wq-bib') && !FRONT.test(h.textContent.trim())) || null; }
+/* رقم الصفحة كما يُطبع: بعد عرض الصفحات من جدول الأرقام، وقبله رقم عادي */
+function pvLabel(n) { return (PV.exact && PV.labels && PV.labels[n - 1] !== undefined) ? PV.labels[n - 1] : N(n, WQ.doc.settings.lang); }
 
 function makePage(g, n) {
   const s = WQ.doc.settings;
@@ -107,6 +115,8 @@ function paginate() {
   const zoomWas = getComputedStyle(document.documentElement).getPropertyValue('--zoom');
   document.documentElement.style.setProperty('--zoom', 1);
   const hs = headings(); hs.forEach((h, i) => { h.dataset.hid = String(i); });
+  const bodyH = WQ.doc.settings.frontNum === 'roman' ? bodyStartHeading() : null; if (bodyH) bodyH.dataset.bodystart = '1';
+  const xs = $$('.wq-ayah,.wq-hadith', page).filter((x) => !x.closest(IDX_SEL)); xs.forEach((x, i) => { x.dataset.xid = String(i); });
   const queue = Array.from(page.children).map((b, i) => { const c = b.cloneNode(true); c.dataset.bi = String(i); return c; });
   $$('[contenteditable]', host).forEach((x) => x.removeAttribute('contenteditable'));
   const pages = [];
@@ -135,7 +145,7 @@ function paginate() {
     b.remove(); fillFootnotes(P, fnCount);
     let parts = null;
     if (/^(P|LI|BLOCKQUOTE|H1|H2|H3)$/.test(b.tagName) && !/^H/.test(b.tagName)) parts = splitByWords(b, P, g, fnCount);
-    else if (/^(UL|OL|TABLE)$/.test(b.tagName) || b.classList.contains('wq-toc') || b.classList.contains('wq-bib')) parts = splitByChildren(b, P, g, fnCount);
+    else if (/^(UL|OL|TABLE)$/.test(b.tagName) || b.classList.contains('wq-toc') || b.classList.contains('wq-bib') || b.classList.contains('wq-idx-ayat') || b.classList.contains('wq-idx-hadith')) parts = splitByChildren(b, P, g, fnCount);
     if (parts && parts[0]) {
       // لا نترك عنوانا\u064B وحيدا\u064B في آخر الصفحة
       P.body.append(parts[0]); fillFootnotes(P, fnCount);
@@ -154,24 +164,33 @@ function paginate() {
   while (pages.length > 1 && !pages[pages.length - 1].body.childElementCount) { pages.pop().pg.remove(); }
   fnCount = 0;
   const s = WQ.doc.settings;
+  let bodyIdx = -1;
+  if (bodyH) { bodyIdx = pages.findIndex((p) => p.body.querySelector('[data-bodystart]')); bodyH.removeAttribute('data-bodystart'); $$('[data-bodystart]', host).forEach((x) => x.removeAttribute('data-bodystart')); }
+  PV.labels = [];
   pages.forEach((p, i) => {
     fillFootnotes(p, fnCount); if (!s.fnRestart) fnCount += $$('.wq-fn', p.body).length;
-    const n = i + 1;
-    p.num.textContent = (i === 0 && s.hideFirstNum !== false) ? '' : (s.numerals === 'arabic' && s.lang === 'ar' ? toArabicDigits(String(n)) : String(n));
+    const n = bodyIdx > 0 ? (i < bodyIdx ? -1 : i - bodyIdx + 1) : i + 1;
+    const lab = n < 0 ? frontLabel(i + 1) : (s.numerals === 'arabic' && s.lang === 'ar' ? toArabicDigits(String(n)) : String(n));
+    PV.labels.push(lab);
+    p.num.textContent = (i === 0 && s.hideFirstNum !== false) ? '' : lab;
   });
   // أرقام الصفحات الحقيقية للعناوين، وتحديث الفهرس
   PV.headPage = {};
   pages.forEach((p, i) => $$('[data-hid]', p.body).forEach((h) => { if (PV.headPage[h.dataset.hid] === undefined) PV.headPage[h.dataset.hid] = i + 1; }));
   $$('.toc-row', host).forEach((r) => {
     const n = PV.headPage[r.dataset.i]; if (n === undefined) return;
-    const sp = r.lastElementChild; if (sp) sp.textContent = N(n, WQ.doc.settings.lang);
+    const sp = r.lastElementChild; if (sp) sp.textContent = PV.labels[n - 1] || N(n, WQ.doc.settings.lang);
   });
   $$('.wq-toc .wq-note', host).forEach((x) => x.remove());
   hs.forEach((h) => h.removeAttribute('data-hid'));
+  PV.xPage = {};
+  pages.forEach((p, i) => $$('[data-xid]', p.body).forEach((x) => { if (PV.xPage[x.dataset.xid] === undefined) PV.xPage[x.dataset.xid] = i + 1; }));
+  xs.forEach((x) => x.removeAttribute('data-xid'));
+  fixIndexPagesIn(host);
   PV.pages = pages.length; PV.stale = false; PV.exact = true;
   document.documentElement.style.setProperty('--zoom', zoomWas || 1);
   if (!wasMode) document.body.classList.remove('pages-mode');
-  renderToc();
+  renderToc(); renderIndexes();
   return pages.length;
 }
 

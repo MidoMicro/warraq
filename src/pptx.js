@@ -29,7 +29,7 @@ function outline() {
   Array.from(page.children).forEach((e) => {
     if (e.tagName === 'HR' && e.classList.contains('wq-pagebreak')) { firstBreak = true; return; }
     if (!firstBreak && !H1 && e.tagName === 'P' && e.textContent.trim()) { front.push(e.innerText.trim()); }
-    if (e.classList.contains('wq-toc') || e.classList.contains('wq-bib')) return;
+    if (e.classList.contains('wq-toc') || e.classList.contains('wq-bib') || e.classList.contains('wq-idx-ayat') || e.classList.contains('wq-idx-hadith')) return;
     if (e.tagName === 'H1') { H1 = { title: e.textContent.trim(), subs: [], front: FRONT.test(e.textContent.trim()) }; secs.push(H1); H2 = null; return; }
     if (!H1) return;
     if (e.tagName === 'H2' || e.tagName === 'H3') { if (e.tagName === 'H2' || !H2) { H2 = { title: e.textContent.trim(), paras: [], tables: [], imgs: [] }; H1.subs.push(H2); } else H2.paras.push(e.textContent.trim()); return; }
@@ -119,7 +119,7 @@ async function exportPptx() {
   });
   // 4) المراجع
   const groups = typeof bibEntries === 'function' ? bibEntries() : [];
-  const refs = []; groups.forEach((g) => g.items.forEach((x) => { const tmp = document.createElement('div'); tmp.innerHTML = s.citeStyle === 'vancouver' ? vanRef(x.r) : apaRef(x.r); refs.push(tmp.textContent); }));
+  const refs = []; groups.forEach((g) => g.items.forEach((x) => { const tmp = document.createElement('div'); tmp.innerHTML = refEntry(s.citeStyle || 'apa', x.r, x.num); refs.push(tmp.textContent); }));
   if (refs.length) {
     sl = p.addSlide({ masterName: 'WQ' });
     sl.addText(L('أهم المراجع', 'Key references'), txt({ x: 0.6, y: 0.35, w: 12.1, h: 0.9, fontSize: 28, bold: true, color: TEAL }));

@@ -223,6 +223,31 @@ function docxBuilder() {
       });
       return x;
     }
+    if (e.classList && (e.classList.contains('wq-idx-ayat') || e.classList.contains('wq-idx-hadith'))) {
+      // فهرس الآيات أو الأحاديث: عنوان + جدول Word بحدود كاملة وصف عناوين يتكرر
+      let x = '';
+      const title = e.querySelector('.wq-block-title'); if (title) x += para(title, '<w:pStyle w:val="Heading1"/>');
+      const rows = Array.from(e.querySelectorAll('.idx-row'));
+      if (!rows.length) { const n = e.querySelector('.wq-note'); return x + (n ? para(n) : ''); }
+      const ay = e.classList.contains('wq-idx-ayat');
+      const pct = ay ? [6, 46, 18, 12, 18] : [6, 52, 24, 18];
+      const colW = pct.map((v) => Math.floor(cw * v / 100));
+      const rtl = isRtl(e);
+      x += '<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/>' + (rtl ? '<w:bidiVisual/>' : '') + '<w:tblW w:w="5000" w:type="pct"/><w:tblBorders>' +
+        ['top', 'left', 'bottom', 'right', 'insideH', 'insideV'].map((k) => '<w:' + k + ' w:val="single" w:sz="4" w:space="0" w:color="999999"/>').join('') + '</w:tblBorders></w:tblPr><w:tblGrid>' +
+        colW.map((w) => '<w:gridCol w:w="' + w + '"/>').join('') + '</w:tblGrid>';
+      rows.forEach((r) => {
+        const head = r.classList.contains('idx-head');
+        x += '<w:tr>' + (head ? '<w:trPr><w:tblHeader/></w:trPr>' : '');
+        Array.from(r.children).forEach((c, k) => {
+          const f = Object.assign({ sz: 26 }, head ? { b: true } : {}, c.querySelector('.idx-q') ? { ayah: true, color: '0B4C52' } : {});
+          x += '<w:tc><w:tcPr><w:tcW w:w="' + colW[k] + '" w:type="dxa"/>' + (head ? '<w:shd w:val="clear" w:color="auto" w:fill="F4EFE6"/>' : '') + '</w:tcPr>' +
+            para(c, k === 1 ? '' : '<w:jc w:val="center"/>', f).replace(/<w:jc w:val="both"\/>/, '') + '</w:tc>';
+        });
+        x += '</w:tr>';
+      });
+      return x + '</w:tbl><w:p/>';
+    }
     if (e.classList && e.classList.contains('wq-bib')) {
       let x = '';
       e.childNodes.forEach((c) => {
@@ -242,17 +267,32 @@ function docxBuilder() {
     renderCitations();
     if (!PV.exact) { const was = document.body.classList.contains('pages-mode'); paginate(); if (!was) document.body.classList.remove('pages-mode'); }
     renderToc();
-    const body = Array.from(page.children).map(block).join('');
     const ar = s.lang === 'ar', hindi = s.numerals === 'arabic'; // الأرقام تتبع اختيار «١٢٣ / 123»
     const W = s.pageSize === 'letter' ? 12240 : 11906, H = s.pageSize === 'letter' ? 15840 : 16838;
     const mT = twip(s.margins === 'narrow' ? 1.27 : (s.margins === 'wide' ? 2.54 : 2.5)), mS = twip(s.margins === 'narrow' ? 1.27 : (s.margins === 'wide' ? 5.08 : 2.5));
     const line = { '1': 240, '115': 276, '15': 360, '2': 480 }[s.lineSpacing] || 360;
     const NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
     const hideFirst = s.hideFirstNum !== false;
-    const sect = '<w:sectPr><w:footerReference w:type="default" r:id="rIdFtr1"/>' + (hideFirst ? '<w:footerReference w:type="first" r:id="rIdFtr2"/>' : '') +
-      '<w:footnotePr><w:numFmt w:val="' + (hindi ? 'hindiNumbers' : 'decimal') + '"/>' + (s.fnRestart ? '<w:numRestart w:val="eachPage"/>' : '') + '</w:footnotePr>' +
-      '<w:pgSz w:w="' + W + '" w:h="' + H + '"/><w:pgMar w:top="' + mT + '" w:right="' + mS + '" w:bottom="' + mT + '" w:left="' + mS + '" w:header="708" w:footer="567" w:gutter="0"/>' +
-      pgBordersXml(s) + '<w:pgNumType w:fmt="' + (hindi ? 'hindiNumbers' : 'decimal') + '"/>' + (hideFirst ? '<w:titlePg/>' : '') + (ar ? '<w:bidi/>' : '') + '</w:sectPr>';
+    // الترقيم التمهيدي: فاصل قسم قبل أول فصل؛ القسم الأول بالحروف، والثاني يبدأ من ١
+    const bodyH = s.frontNum === 'roman' ? bodyStartHeading() : null;
+    const kids = Array.from(page.children);
+    let body = '', frontDone = false;
+    kids.forEach((e, i) => {
+      if (bodyH && !frontDone) {
+        if (e.tagName === 'HR' && e.classList.contains('wq-pagebreak') && kids[i + 1] === bodyH) return; // فاصل القسم يبدأ صفحة جديدة بنفسه
+        if (e === bodyH) { body += '<w:p><w:pPr>' + sectXml(true) + '</w:pPr></w:p>'; frontDone = true; }
+      }
+      body += block(e);
+    });
+    function sectXml(front) {
+      const first = hideFirst && (front || !frontDone);
+      const fmt = front ? (ar ? 'arabicAbjad' : 'lowerRoman') : (hindi ? 'hindiNumbers' : 'decimal');
+      return '<w:sectPr><w:footerReference w:type="default" r:id="rIdFtr1"/>' + (first ? '<w:footerReference w:type="first" r:id="rIdFtr2"/>' : '') +
+        '<w:footnotePr><w:numFmt w:val="' + (hindi ? 'hindiNumbers' : 'decimal') + '"/>' + (s.fnRestart ? '<w:numRestart w:val="eachPage"/>' : '') + '</w:footnotePr>' +
+        '<w:pgSz w:w="' + W + '" w:h="' + H + '"/><w:pgMar w:top="' + mT + '" w:right="' + mS + '" w:bottom="' + mT + '" w:left="' + mS + '" w:header="708" w:footer="567" w:gutter="0"/>' +
+        pgBordersXml(s) + '<w:pgNumType w:fmt="' + fmt + '"' + (front || frontDone ? ' w:start="1"' : '') + '/>' + (first ? '<w:titlePg/>' : '') + (ar ? '<w:bidi/>' : '') + '</w:sectPr>';
+    }
+    const sect = sectXml(false);
     const documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ' + NS + '><w:body>' + body + sect + '</w:body></w:document>';
     const rPrDef = '<w:rFonts w:ascii="' + X(docFont) + '" w:hAnsi="' + X(docFont) + '" w:cs="' + X(docFont) + '" w:eastAsia="' + X(docFont) + '"/><w:sz w:val="32"/><w:szCs w:val="32"/><w:lang w:val="en-US" w:bidi="ar-EG"/>';
     const hs = (id, name, sz, color, lvl) => '<w:style w:type="paragraph" w:styleId="' + id + '"><w:name w:val="' + name + '"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="240" w:after="120"/>' + (lvl !== undefined ? '<w:outlineLvl w:val="' + lvl + '"/>' : '') + '</w:pPr><w:rPr>' + (s.headFont ? '<w:rFonts w:ascii="' + X(s.headFont) + '" w:hAnsi="' + X(s.headFont) + '" w:cs="' + X(s.headFont) + '"/>' : '') + '<w:b/><w:bCs/><w:color w:val="' + color + '"/><w:sz w:val="' + sz + '"/><w:szCs w:val="' + sz + '"/></w:rPr></w:style>';

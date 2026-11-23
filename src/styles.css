@@ -131,6 +131,12 @@ body.hide-nav.hide-ref .workspace{grid-template-columns:minmax(0,1fr)}
 .fn-item:hover{background:#FAEEDA}
 .fn-num{color:var(--accent)}
 #fnZone .ibid{background:#FAEEDA;color:#854F0B;border-radius:3px;padding:0 3px}
+.wq-idx-ayat,.wq-idx-hadith{border:1px dashed #B8732E88;border-radius:6px;padding:.4em .8em;margin:.6em 0;cursor:default;user-select:none}
+.idx-row{display:grid;grid-template-columns:2.2em minmax(0,1fr) 7em 4.5em 5em;gap:.5em;align-items:baseline;padding:.15em 0;border-bottom:1px solid #E5DED0;font-size:.92em;line-height:1.6}
+.wq-idx-hadith .idx-row{grid-template-columns:2.2em minmax(0,1fr) 9em 5em}
+.idx-head{font-weight:700;color:var(--primary);border-bottom:1.5px solid #999}
+.idx-q{font-family:'Amiri Quran','Amiri',serif;color:#0B4C52}
+.pages-view .wq-idx-ayat,.pages-view .wq-idx-hadith{border:none;padding:0}
 .wq-toc,.wq-bib{border:1px dashed #B8732E88;border-radius:6px;padding:.4em .8em;margin:.6em 0;cursor:default;user-select:none}
 .wq-block-title{font-size:1.3em;color:var(--primary);font-weight:700;margin:.2em 0 .4em}
 .wq-block-sub{font-weight:700;color:#33504F;margin:.6em 0 .2em}

@@ -27,7 +27,7 @@ function tkCanon(d) {
   const sh = d.includes('ّ'), h = d.replace(/ّ/g, '').slice(-1);
   return h + (sh ? 'ّ' : '');
 }
-const TK_SKIP = '.wq-ayah,.wq-ayah-ref,.wq-hadith,.wq-fn,.wq-cite,sup,.wq-toc,.wq-bib';
+const TK_SKIP = '.wq-ayah,.wq-ayah-ref,.wq-hadith,.wq-fn,.wq-cite,sup,.wq-toc,.wq-bib,.wq-idx-ayat,.wq-idx-hadith';
 let TK = null, _tkLoading = null;
 
 async function loadTashkeel() {

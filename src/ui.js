@@ -140,12 +140,14 @@ function renderRibbon() {
     }
     case 'cite':
       add(el('span', { class: 'rlabel', html: escapeHtml(t('citeStyle')) }),
-        rsel(t('citeStyle'), [['notes', t('styleNotes')], ['apa', 'APA'], ['vancouver', 'Vancouver']], s.citeStyle || 'notes', setCiteStyle), sep(),
+        rsel(t('citeStyle'), [['notes', t('styleNotes')], ['apa', 'APA 7'], ['vancouver', 'Vancouver'], ['ieee', 'IEEE'], ['harvard', 'Harvard'], ['chicago', 'Chicago (author-date)'], ['mla', 'MLA 9']], s.citeStyle || 'notes', setCiteStyle), sep(),
         rb('¹ ' + t('insertFootnote'), t('insertFootnote'), () => { saveRange(); openFootnoteDialog(); }, 'special'),
         rb('❝ ' + t('insertCitation'), t('insertCitation'), () => { saveRange(); openCiteDialog(); }, 'special'),
-        rb('＋ ' + t('newRef'), t('newRef'), () => { saveRange(); openRefDialog(); }), sep(),
+        rb('＋ ' + t('newRef'), t('newRef'), () => { saveRange(); openRefDialog(); }),
+        rb('⇪ ' + t('refImport'), t('refImportT'), openRefImportDialog), rb('⇩ BibTeX', t('refExportT'), exportBibTeX), sep(),
         rb('▤ ' + t('bibliography'), t('bibliography'), () => insertBlock('wq-bib'), 'outline'),
-        rb('☰ ' + t('toc'), t('toc'), () => insertBlock('wq-toc'), 'outline'), sep(),
+        rb('☰ ' + t('toc'), t('toc'), () => insertBlock('wq-toc'), 'outline'),
+        rb('﴿﴾ ' + t('idxAyat'), t('idxAyatT'), () => insertBlock('wq-idx-ayat'), 'outline'), rb('📜 ' + t('idxHadith'), t('idxHadithT'), () => insertBlock('wq-idx-hadith'), 'outline'), sep(),
         el('span', { class: 'rlabel', html: escapeHtml(t('fnNumbering')) }),
         rsel(t('fnNumbering'), [['cont', t('fnCont')], ['page', t('fnPerPage')]], s.fnRestart ? 'page' : 'cont', (v) => { WQ.doc.settings.fnRestart = v === 'page'; markDirty(); }),
         el('span', { class: 'rlabel', html: '· ' + escapeHtml(t('citeHint')) }));
@@ -153,7 +155,8 @@ function renderRibbon() {
     case 'thesis':
       add(rb('﴿ ﴾ ' + t('insertAyah'), t('insertAyah'), openAyahDialog, 'special'), sep(),
         rb('▦ ' + t('templates'), t('templates'), openStart), rb('☰ ' + t('toc'), t('toc'), () => insertBlock('wq-toc')),
-        rb('▤ ' + t('bibliography'), t('bibliography'), () => insertBlock('wq-bib')), sep(),
+        rb('▤ ' + t('bibliography'), t('bibliography'), () => insertBlock('wq-bib')),
+        rb('﴿﴾ ' + t('idxAyat'), t('idxAyatT'), () => insertBlock('wq-idx-ayat')), rb('📜 ' + t('idxHadith'), t('idxHadithT'), () => insertBlock('wq-idx-hadith')), sep(),
         rb('◷ ' + t('snapshots'), t('snapshots'), openSnapshotsDialog));
       break;
     case 'layout':
@@ -169,6 +172,8 @@ function renderRibbon() {
         rsel(t('margins'), [['normal', t('mNormal')], ['narrow', t('mNarrow')], ['wide', t('mWide')]], s.margins, (v) => setSetting('margins', v)),
         el('span', { class: 'rlabel', html: escapeHtml(t('lineSpacing')) }),
         ...(isRuled() ? [] : [rsel(t('lineSpacing'), [['1', '1.0'], ['115', '1.15'], ['15', '1.5'], ['2', '2.0']], s.lineSpacing, (v) => setSetting('lineSpacing', v))]), sep(),
+        el('span', { class: 'rlabel', html: escapeHtml(t('frontNum')) }),
+        rsel(t('frontNumHint'), [['off', t('frontNumOff')], ['roman', t('frontNumOn')]], s.frontNum || 'off', (v) => { setSetting('frontNum', v === 'roman' ? 'roman' : ''); PV.exact = false; }), sep(),
         el('span', { class: 'rlabel', html: escapeHtml(t('pageBorder')) }),
         rsel(t('pageBorder'), [['none', t('pbNone')], ['single', t('pbSingle')], ['double', t('pbDouble')], ['thick', t('pbThick')], ['thickThin', t('pbThickThin')]], s.pageBorder || 'none', (v) => { setSetting('pageBorder', v); renderRibbon(); if (v !== 'none') { toast(t('pbHint')); if (!document.body.classList.contains('pages-mode')) { setPagesView(true); return; } } if (document.body.classList.contains('pages-mode')) paginate(); }),
         ...(frameOf(s) ? [rsel(t('pbColor'), [['teal', t('cTeal')], ['black', t('cBlack')], ['copper', t('cCopper')]], s.pageBorderColor || 'teal', (v) => { setSetting('pageBorderColor', v); if (document.body.classList.contains('pages-mode')) paginate(); })] : []), sep(),
@@ -380,6 +385,6 @@ function boot() {
       window.claude.use('downloads').then((d) => { WQ.downloads = d || null; }).catch(() => {});
     }
   } catch (e) {}
-  window.WQ_API = { WQ, hdTypo, sunnahUrl, hadithSpan, loadHadithIndex, loadHadithBook, loadAllHadith, searchHadith, matchHadith, insertHadith, hdTakhrij, hdMatnStart, verifyHadiths, loadTashkeel, tashkeelSelection, ayahText, matchQuran, poemHtml, exportPDF, exportPNG, drawPage, zipStore, paginate, setPagesView, PV: () => PV, takeSnapshot, restoreSnapshot, applyTemplate, docxToWarraq, loadQuran, insertAyah, searchQuran, openStart, refreshDerived, setCiteStyle, addCitation, addFootnote, insertBlock, renderCitations, apaRef, vanRef, serializeDoc, parseDoc, loadDocIntoEditor, sanitizeHtml, countWords, setDocLang, setNumerals, setBlock, insertTable, newDocModel };
+  window.WQ_API = { WQ, renderIndexes, parseBibTeX, parseRIS, importRefs, toBibTeX, ieeeRef, harvardRef, chicagoRef, mlaRef, inTextFor, crossrefToRef, cleanDOI, hdTypo, sunnahUrl, hadithSpan, loadHadithIndex, loadHadithBook, loadAllHadith, searchHadith, matchHadith, insertHadith, hdTakhrij, hdMatnStart, verifyHadiths, loadTashkeel, tashkeelSelection, ayahText, matchQuran, poemHtml, exportPDF, exportPNG, drawPage, zipStore, paginate, setPagesView, PV: () => PV, takeSnapshot, restoreSnapshot, applyTemplate, docxToWarraq, loadQuran, insertAyah, searchQuran, openStart, refreshDerived, setCiteStyle, addCitation, addFootnote, insertBlock, renderCitations, apaRef, vanRef, serializeDoc, parseDoc, loadDocIntoEditor, sanitizeHtml, countWords, setDocLang, setNumerals, setBlock, insertTable, newDocModel };
 }
 document.addEventListener('DOMContentLoaded', boot);

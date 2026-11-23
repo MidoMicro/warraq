@@ -134,4 +134,5 @@ async function verifyAyat() {
     const want = '﴿' + ayahText(s, a, b, sp.dataset.n === '1') + '﴾';
     if (sp.textContent !== want) sp.textContent = want;
   });
+  if (typeof renderIndexes === 'function') renderIndexes();
 }

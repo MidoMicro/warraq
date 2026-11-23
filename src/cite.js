@@ -7,7 +7,7 @@ const TERMS = {
   fr: { ibid: 'Ibid.', opcit: 'op. cit.', p: 'p.', and: 'et', etal: 'et al.', nd: 's.d.', master: 'Mémoire de master', phd: 'Thèse de doctorat', c: ', ', avail: 'Disponible sur', tahqiq: 'éd.', edn: 'éd.', vol: 't.', died: 'm.' }
 };
 const REF_TYPES = ['book', 'article', 'thesis', 'web'];
-const REF_FIELDS = ['type', 'lang', 'authors', 'title', 'year', 'publisher', 'place', 'journal', 'volume', 'issue', 'pages', 'university', 'degree', 'url', 'accessed', 'editor', 'edition', 'death'];
+const REF_FIELDS = ['type', 'lang', 'authors', 'title', 'year', 'publisher', 'place', 'journal', 'volume', 'issue', 'pages', 'university', 'degree', 'url', 'accessed', 'editor', 'edition', 'death', 'doi'];
 
 const uid = (p) => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const hasArabic = (s) => /[\u0600-\u06FF]/.test(s || '');
@@ -196,8 +196,7 @@ function renderCitations() {
       const r = f.refId && refById(f.refId);
       if (r) {
         if (style === 'notes') body = (lastRef === r.id) ? noteIbid(r, f.page, f.vol) : (seen.has(r.id) ? noteShort(r, f.page, f.vol) : noteFull(r, f.page, f.vol));
-        else if (style === 'apa') body = apaInText(r, f.page, f.vol);
-        else { if (!order.includes(r.id)) order.push(r.id); body = '[' + N(order.indexOf(r.id) + 1, WQ.doc.settings.lang) + ']'; }
+        else { if (!order.includes(r.id)) order.push(r.id); body = inTextFor(style, r, f.page, f.vol, order.indexOf(r.id) + 1); }
         seen.add(r.id); lastRef = r.id;
       } else if (f.refId) lastRef = null;
       if (f.text) body += (body ? ' ' : '') + E(f.text);
@@ -208,8 +207,8 @@ function renderCitations() {
       const r = refById(el.dataset.ref);
       if (!r) { el.remove(); return; }
       let txt;
-      if (style === 'vancouver') { if (!order.includes(r.id)) order.push(r.id); txt = '[' + N(order.indexOf(r.id) + 1, WQ.doc.settings.lang) + ']'; }
-      else txt = apaInText(r, el.dataset.page, el.dataset.vol);
+      if (!order.includes(r.id)) order.push(r.id);
+      txt = inTextFor(style, r, el.dataset.page, el.dataset.vol, order.indexOf(r.id) + 1);
       const plain = new DOMParser().parseFromString(txt, 'text/html').body.textContent;
       if (el.textContent !== plain) el.textContent = plain;
       seen.add(r.id);
@@ -221,6 +220,7 @@ function renderCitations() {
   WQ._citedOrder = order; WQ._cited = seen;
   renderBibliography();
   renderToc();
+  if (typeof renderIndexes === 'function') renderIndexes();
   renderRefPanel();
 }
 
@@ -228,14 +228,14 @@ function renderCitations() {
 function bibEntries() {
   const style = WQ.doc.settings.citeStyle || 'notes';
   const cited = (WQ.doc.references || []).filter((r) => WQ._cited && WQ._cited.has(r.id));
-  if (style === 'vancouver') {
+  if (NUMERIC_STYLES.includes(style)) {
     return [{ items: WQ._citedOrder.map((id, i) => ({ r: refById(id), num: i + 1 })).filter((x) => x.r) }];
   }
   const key = (r) => (parseAuthors(r)[0] || { family: r.title }).family + ' ' + r.title;
   const ar = cited.filter((r) => refLang(r) === 'ar').sort((a, b) => key(a).localeCompare(key(b), 'ar'));
   const fo = cited.filter((r) => refLang(r) !== 'ar').sort((a, b) => key(a).localeCompare(key(b), 'en'));
   const docAr = WQ.doc.settings.lang === 'ar';
-  const groups = docAr ? [{ title: t('bibAr'), items: ar }, { title: t('bibForeign'), items: fo }] : [{ title: t('bibForeign'), items: fo }, { title: t('bibAr'), items: ar }];
+  const groups = docAr ? [{ title: tDoc('bibAr'), items: ar }, { title: tDoc('bibForeign'), items: fo }] : [{ title: tDoc('bibForeign'), items: fo }, { title: tDoc('bibAr'), items: ar }];
   return groups.filter((g) => g.items.length).map((g) => ({ title: (ar.length && fo.length) ? g.title : '', items: g.items.map((r) => ({ r })) }));
 }
 function renderBibliography() {
@@ -243,12 +243,12 @@ function renderBibliography() {
   if (!blocks.length) return;
   const style = WQ.doc.settings.citeStyle || 'notes';
   const groups = bibEntries();
-  let h = '<div class="wq-block-title">' + E(t('bibTitle')) + '</div>';
+  let h = '<div class="wq-block-title">' + E(tDoc(style === 'mla' ? 'bibTitleMla' : 'bibTitle')) + '</div>';
   if (!groups.length || !groups.some((g) => g.items.length)) h += '<p class="wq-note">' + E(t('bibEmpty')) + '</p>';
   groups.forEach((g) => {
     if (g.title) h += '<div class="wq-block-sub">' + E(g.title) + '</div>';
     g.items.forEach((x) => {
-      const txt = style === 'vancouver' ? N(x.num, WQ.doc.settings.lang) + '. ' + vanRef(x.r) : apaRef(x.r);
+      const txt = refEntry(style, x.r, x.num);
       h += '<p class="bib-item" dir="auto">' + txt + '</p>';
     });
   });
@@ -260,10 +260,10 @@ function renderToc() {
   const blocks = $$('.wq-toc', page);
   if (!blocks.length) return;
   const hs = headings();
-  let h = '<div class="wq-block-title">' + E(t('tocTitle')) + '</div>';
+  let h = '<div class="wq-block-title">' + E(tDoc('tocTitle')) + '</div>';
   if (!hs.length) h += '<p class="wq-note">' + E(t('tocEmpty')) + '</p>';
   hs.forEach((x, i) => {
-    h += '<div class="toc-row l' + x.tagName[1] + '" data-i="' + i + '" dir="auto"><span>' + E(x.textContent.trim()) + '</span><span class="dots"></span><span>' + N((PV.exact && PV.headPage[i] !== undefined) ? PV.headPage[i] : pageOf(x), WQ.doc.settings.lang) + '</span></div>';
+    h += '<div class="toc-row l' + x.tagName[1] + '" data-i="' + i + '" dir="auto"><span>' + E(x.textContent.trim()) + '</span><span class="dots"></span><span>' + ((PV.exact && PV.headPage[i] !== undefined) ? pvLabel(PV.headPage[i]) : N(pageOf(x), WQ.doc.settings.lang)) + '</span></div>';
   });
   if (hs.length && !PV.exact) h += '<p class="wq-note">' + E(t('pageApproxNote')) + '</p>';
   blocks.forEach((b) => { if (b._h !== h) { b.innerHTML = h; b._h = h; } });
@@ -284,7 +284,9 @@ function addCitation(refId, pageNo, vol) {
 function insertBlock(cls) {
   const ex = $('.' + cls, page);
   if (ex) { ex.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
-  insertHtml('<div class="' + cls + '" contenteditable="false"></div><p dir="auto"><br></p>');
+  // الفهارس والقوائم تُدرج ككتلة مستقلة بعد الفقرة الحالية
+  if (typeof insertBlocksAfter === 'function') insertBlocksAfter('<div class="' + cls + '" contenteditable="false"></div>');
+  else insertHtml('<div class="' + cls + '" contenteditable="false"></div><p dir="auto"><br></p>');
   renderCitations();
 }
 
@@ -369,16 +371,17 @@ function deleteRef(id) {
 /* ---------- نافذة المرجع ---------- */
 function openRefDialog(existing) {
   const r = existing ? Object.assign({}, existing) : cleanRef({ id: uid('r'), type: 'book' });
-  const fieldsFor = { book: ['authors', 'death', 'title', 'editor', 'edition', 'year', 'publisher', 'place'], article: ['authors', 'title', 'year', 'journal', 'volume', 'issue', 'pages'],
+  const fieldsFor = { book: ['doi', 'authors', 'death', 'title', 'editor', 'edition', 'year', 'publisher', 'place'], article: ['doi', 'authors', 'title', 'year', 'journal', 'volume', 'issue', 'pages'],
     thesis: ['authors', 'title', 'year', 'university', 'degree'], web: ['authors', 'title', 'year', 'publisher', 'url', 'accessed'] };
   const style = WQ.doc.settings.citeStyle || 'notes';
-  const preview = () => style === 'vancouver' ? vanRef(r) : (style === 'apa' ? apaRef(r) : noteFull(r, ''));
+  const preview = () => style === 'notes' ? noteFull(r, '') : refEntry(style, r, 1);
   const draw = (m) => {
     const b = $('.body', m);
     let h = '<div class="chips">' + REF_TYPES.map((tp) => '<button class="chip' + (r.type === tp ? ' on' : '') + '" data-tp="' + tp + '">' + E(t('rt_' + tp)) + '</button>').join('') + '</div>';
     fieldsFor[r.type].forEach((f) => {
       const v = E(r[f] || '');
       if (f === 'authors') h += '<label>' + E(t('f_authors')) + '</label><textarea data-f="authors" dir="auto" rows="2">' + v + '</textarea>';
+      else if (f === 'doi') h += '<label>' + E(t('f_doi')) + '</label><div style="display:flex;gap:6px"><input data-f="doi" dir="ltr" value="' + v + '" placeholder="10.1000/xyz123" style="flex:1"><button class="btn2" id="doiBtn" type="button" style="margin-bottom:10px;white-space:nowrap">' + E(t('doiFetch')) + '</button></div>';
       else if (f === 'degree') h += '<label>' + E(t('f_degree')) + '</label><select data-f="degree"><option value="master">' + E(t('degMaster')) + '</option><option value="phd"' + (r.degree === 'phd' ? ' selected' : '') + '>' + E(t('degPhd')) + '</option></select>';
       else h += '<label>' + E(t('f_' + f)) + '</label><input data-f="' + f + '" dir="' + (/url|year|volume|issue|pages|accessed/.test(f) ? 'ltr' : 'auto') + '" value="' + v + '"' + (/death|edition|editor/.test(f) ? ' placeholder="' + E(t('ph_' + f)) + '"' : '') + '>';
     });
@@ -387,6 +390,13 @@ function openRefDialog(existing) {
     b.innerHTML = h;
     $('[data-f="lang"]', b).value = r.lang || '';
     $$('.chip', b).forEach((c) => c.onclick = () => { r.type = c.dataset.tp; draw(m); });
+    const db = $('#doiBtn', b);
+    if (db) db.onclick = async () => {
+      const d = cleanDOI(r.doi); if (!d) { $('#refPrev', b).innerHTML = '<span style="color:#A32D2D">' + E(t('doiBad')) + '</span>'; return; }
+      db.disabled = true; db.textContent = t('doiFetching');
+      try { const x = await fetchDOI(d); Object.keys(x).forEach((k) => { if (x[k]) r[k] = x[k]; }); draw(m); toast(t('doiOk')); }
+      catch (e) { db.disabled = false; db.textContent = t('doiFetch'); $('#refPrev', b).innerHTML = '<span style="color:#A32D2D">' + E(t('doiFail')) + '</span>'; }
+    };
     $$('[data-f]', b).forEach((inp) => inp.addEventListener('input', () => { r[inp.dataset.f] = inp.value; $('#refPrev', b).innerHTML = preview(); }));
     $$('select[data-f]', b).forEach((inp) => inp.addEventListener('change', () => { r[inp.dataset.f] = inp.value; $('#refPrev', b).innerHTML = preview(); }));
   };
@@ -403,7 +413,7 @@ function openRefDialog(existing) {
   actions.push({ label: existing ? t('ok') : t('saveInsert'), cls: 'btn', run: (m) => commit(m, !existing) });
   showModal({ title: existing ? t('editRef') : t('newRef'), body: '', wide: true, actions, onOpen: draw });
 }
-function styleName(s) { return s === 'apa' ? 'APA' : (s === 'vancouver' ? 'Vancouver' : t('styleNotes')); }
+function styleName(s) { return STYLE_NAMES[s] || t('styleNotes'); }
 
 /* ---------- نافذة الاستشهاد ---------- */
 function openCiteDialog(preId) {
@@ -445,7 +455,7 @@ function initCiteEvents() {
     const c = e.target.closest('.wq-cite');
     if (c) {
       const r = refById(c.dataset.ref);
-      showModal({ title: t('cite'), body: '<div class="preview-box" dir="auto">' + (r ? apaRef(r) : '') + '</div><div class="row"><div><label>' + E(t('volNo')) + '</label><input id="cvl" dir="ltr" value="' + E(c.dataset.vol || '') + '"></div><div><label>' + E(t('pageNo')) + '</label><input id="cpg" dir="ltr" value="' + E(c.dataset.page || '') + '"></div></div>',
+      showModal({ title: t('cite'), body: '<div class="preview-box" dir="auto">' + (r ? refEntry(WQ.doc.settings.citeStyle || 'apa', r, 1) : '') + '</div><div class="row"><div><label>' + E(t('volNo')) + '</label><input id="cvl" dir="ltr" value="' + E(c.dataset.vol || '') + '"></div><div><label>' + E(t('pageNo')) + '</label><input id="cpg" dir="ltr" value="' + E(c.dataset.page || '') + '"></div></div>',
         actions: [{ label: t('del'), run: () => { c.remove(); markDirty(); renderCitations(); } }, { label: t('ok'), cls: 'btn', run: (m) => { c.dataset.page = $('#cpg', m).value.trim(); c.dataset.vol = $('#cvl', m).value.trim(); markDirty(); renderCitations(); } }] });
       return;
     }

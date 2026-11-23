@@ -1,5 +1,5 @@
 /* ===== core: الثوابت والحالة والأدوات العامة ===== */
-const APP_VERSION = '0.9.3';
+const APP_VERSION = '0.10.0';
 const APP_STAGE = '9';
 const APP_UPDATED = '2026-11-18';
 const FILE_FORMAT = 'warraq';
@@ -16,6 +16,8 @@ const WQ = {
 };
 
 const t = (k) => (I18N[WQ.ui] && I18N[WQ.ui][k] !== undefined) ? I18N[WQ.ui][k] : (I18N.ar[k] ?? k);
+/* نصوص تُطبع داخل المستند (عناوين القوائم والفهارس): بلغة المستند لا بلغة الواجهة */
+const tDoc = (k) => { const L = WQ.doc && WQ.doc.settings.lang === 'ar' ? 'ar' : 'en'; return I18N[L][k] !== undefined ? I18N[L][k] : t(k); };
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 const nowISO = () => new Date().toISOString();
@@ -39,7 +41,7 @@ function newDocModel(lang = 'ar') {
       lang,                                   // ar | en | fr
       numerals: lang === 'ar' ? 'arabic' : 'western', // arabic | western
       pageSize: 'a4', margins: 'normal', lineSpacing: '15',
-      citeStyle: 'notes'                      // notes | apa | vancouver
+      citeStyle: 'notes'                      // notes | apa | vancouver | ieee | harvard | chicago | mla
     },
     content: { html: '' },
     references: [],

@@ -296,12 +296,14 @@ function sanitizeHtml(html, trusted = false) {
         return;
       }
       if (cls.includes('wq-ayah-ref')) { out += trusted ? '<span class="wq-ayah-ref" contenteditable="false">' + escapeHtml(n.textContent) + '</span>' : escapeHtml(n.textContent); return; }
-      if (/\bwq-(fn|cite|toc|bib)\b/.test(cls)) {
+      if (/\bwq-(fn|cite|toc|bib|idx-ayat|idx-hadith)\b/.test(cls)) {
         if (!trusted) return;
         if (cls.includes('wq-fn') && ID_RE.test(n.dataset.fn || '')) out += '<sup class="wq-fn" data-fn="' + n.dataset.fn + '" contenteditable="false">*</sup>';
         else if (cls.includes('wq-cite') && ID_RE.test(n.dataset.ref || '')) out += '<span class="wq-cite" data-ref="' + n.dataset.ref + '" data-page="' + escapeHtml(n.dataset.page || '') + '" data-vol="' + escapeHtml(n.dataset.vol || '') + '" contenteditable="false">[*]</span>';
         else if (cls.includes('wq-toc')) out += '<div class="wq-toc" contenteditable="false"></div>';
         else if (cls.includes('wq-bib')) out += '<div class="wq-bib" contenteditable="false"></div>';
+        else if (cls.includes('wq-idx-ayat')) out += '<div class="wq-idx-ayat" contenteditable="false"></div>';
+        else if (cls.includes('wq-idx-hadith')) out += '<div class="wq-idx-hadith" contenteditable="false"></div>';
         return;
       }
       const tag = ALLOWED[n.tagName];
@@ -353,7 +355,7 @@ function onPaste(e) {
 const WORD_RE = /[\p{L}\p{N}\p{M}]+(?:['’\-][\p{L}\p{N}\p{M}]+)*/gu;
 function countWords() {
   let text = page.innerText || '';
-  $$('.wq-toc,.wq-bib,.wq-fn,.wq-cite', page).forEach((g) => { text = text.replace(g.innerText, ' '); });
+  $$('.wq-toc,.wq-bib,.wq-idx-ayat,.wq-idx-hadith,.wq-fn,.wq-cite', page).forEach((g) => { text = text.replace(g.innerText, ' '); });
   const words = text.match(WORD_RE) || [];
   return { words: words.length, chars: text.replace(/\s/g, '').length };
 }
