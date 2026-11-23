@@ -36,6 +36,12 @@ check('Matn detection starts at «إنما الأعمال»', matn.replace(HAR, 
 const ahm = await pg.evaluate(async () => { const A = window.WQ_API; const a = await A.loadHadithBook('ahmad'); const d = await A.loadHadithBook('darimi'); return [a.h.length, a.h[0][1].slice(0, 20), d.h.length, /[‏‎]/.test(a.h[0][1])]; });
 check('Musnad Ahmad and al-Darimi load, invisible marks cleaned', ahm[0] > 26000 && ahm[2] > 3300 && !ahm[3], JSON.stringify(ahm));
 
+// 3ب) ظبط علامات الترقيم (0.9.1)
+const typo = await pg.evaluate(async () => { const A = window.WQ_API; const sp = document.createElement('div'); A.loadDocIntoEditor(A.newDocModel('ar'));
+  document.querySelector('#page').innerHTML = '<p>' + A.hadithSpan('bukhari', '1', 0, 0) + '</p>'; return document.querySelector('#page .wq-hadith').textContent; });
+check('Inserted text: no space before ، or :, no stray quote', !/\s[،:]/.test(typo) && !typo.includes('"'), typo.slice(0, 80));
+check('Letters and diacritics unchanged by tidying', await pg.evaluate(async () => { const A = window.WQ_API; const B = await A.loadHadithBook('bukhari'); const raw = B.h[B.map.get('1')][1];
+  const strip = (x) => x.replace(/[^\u0621-\u0652\u0670]/g, ''); return strip(A.hdTypo(raw)) === strip(raw); }));
 // 4) نافذة الإدراج: رقم ← معاينة وأحكام ← إدراج مع حاشية
 await load('<p>قال النبي ﷺ: </p>');
 await pg.evaluate(() => { const p = document.querySelector('#page p').firstChild; const r = document.createRange(); r.setStart(p, p.length); r.collapse(true); const s = getSelection(); s.removeAllRanges(); s.addRange(r); });
@@ -47,10 +53,12 @@ await pg.waitForTimeout(400);
 const prev = await pg.evaluate(() => [document.querySelector('#hPrev').textContent.slice(0, 40), document.querySelector('#hGrades').textContent, document.querySelector('#hDorar').href]);
 check('Dialog previews hadith with attributed grades', prev[0].includes('أبو داود (٢٢٠١)') && prev[1].includes('الألباني') && prev[1].includes('ورّاق لا يحكم'), prev[0] + ' / ' + prev[1].slice(0, 80));
 check('Dorar button links to a dorar.net search', /^https:\/\/dorar\.net\/hadith\/search\?q=/.test(prev[2]), prev[2].slice(0, 70));
-await pg.click('.chip[data-p="matn"]');
+const defPart = await pg.evaluate(() => document.querySelector('.chip[data-p].on').dataset.p);
+check('Dialog defaults to matn only', defPart === 'matn', defPart);
 await pg.click('.modal .actions .btn');
 const ins = await pg.evaluate(() => { const sp = document.querySelector('#page .wq-hadith'); const fn = document.querySelector('#page .wq-fn'); return { bk: sp && sp.dataset.bk, k: sp && sp.dataset.k, o: sp && sp.dataset.o, txt: sp && sp.textContent.slice(0, 30), fn: fn && WQ.doc.footnotes[fn.dataset.fn].text, after: sp && sp.nextSibling === fn }; });
 check('Inserted protected hadith span (matn only)', ins.bk === 'abudawud' && ins.k === '2201' && +ins.o > 0 && ins.txt.startsWith('«'), JSON.stringify(ins).slice(0, 160));
+check('Hadith text prints in the normal text colour', await pg.evaluate(() => getComputedStyle(document.querySelector('#page .wq-hadith')).color === getComputedStyle(document.querySelector('#page p')).color));
 check('Footnote takhrij with grades placed right after it', ins.after && ins.fn.startsWith('أخرجه أبو داود (٢٢٠١).') && ins.fn.includes('قال الألباني'), ins.fn);
 
 // 5) الحماية: نص معدّل يعود للأصل عند الفتح، والنسخ من خارج ورّاق لا ينشئ عناصر محمية
