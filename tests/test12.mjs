@@ -97,8 +97,27 @@ const rep = await pg.evaluate(() => { const sp = document.querySelector('#page .
 check('Replace inserts source text + takhrij footnote, keeps surrounding text', rep.bk === 'muslim' && rep.t.startsWith('«الدين النصيحة') && rep.fn.startsWith('أخرجه مسلم') && rep.left, JSON.stringify(rep));
 await pg.click('.modal .actions .btn');
 
+// 6ب) 0.9.2: الاتجاه، ولغة التخريج، والترجمة
+const dirs = await pg.evaluate(async () => { const A = window.WQ_API; const out = [];
+  for (const l of ['ar', 'en']) { A.loadDocIntoEditor(Object.assign(A.newDocModel(l), { content: { html: '<p dir="auto">' + A.hadithSpan('bukhari', '4', 0, 0) + '</p>' } }));
+    out.push(document.querySelector('#page p').matches(':dir(rtl)')); }
+  return out; });
+check('Paragraph holding only a hadith is right-to-left (Arabic and English docs)', dirs.every(Boolean), JSON.stringify(dirs));
+await load('<p>Text: </p>', 'en');
+await pg.evaluate(() => { const p = document.querySelector('#page p').firstChild; const r = document.createRange(); r.setStart(p, p.length); r.collapse(true); getSelection().removeAllRanges(); getSelection().addRange(r); });
+await pg.click('.ribbon button:has-text("حديث")'); await pg.waitForSelector('#hBook');
+await pg.fill('#hNum', '1'); await pg.waitForTimeout(400);
+const dlg = await pg.evaluate(() => [document.querySelector('.chip[data-l].on').dataset.l, document.querySelector('#hSunnah').href]);
+check('Reference language defaults to Arabic with the Arabic UI, even in an English doc', dlg[0] === 'ar', dlg[0]);
+check('English translation button links to sunnah.com/bukhari:1', dlg[1] === 'https://sunnah.com/bukhari:1', dlg[1]);
+await pg.click('.modal .actions .btn');
+const fnAr = await pg.evaluate(() => { const f = document.querySelector('#page .wq-fn'); return WQ.doc.footnotes[f.dataset.fn].text; });
+check('Footnote takhrij in Arabic', fnAr.startsWith('أخرجه البخاري (١)'), fnAr);
+const su = await pg.evaluate(() => [window.WQ_API.sunnahUrl('muslim', '11.02', ''), window.WQ_API.sunnahUrl('ahmad', '5', 'إنما الأعمال')]);
+check('Muslim sub-number maps to sunnah.com/muslim:11b; Ahmad uses search', su[0] === 'https://sunnah.com/muslim:11b' && su[1].startsWith('https://sunnah.com/search?q='), su.join(' '));
+
 // 7) مستند إنجليزي
-const en = await pg.evaluate(() => { const A = window.WQ_API; A.loadDocIntoEditor(A.newDocModel('en')); return A.hdTakhrij('bukhari', '1', false); });
+const en = await pg.evaluate(() => { const A = window.WQ_API; A.loadDocIntoEditor(A.newDocModel('en')); return A.hdTakhrij('bukhari', '1', false, 'en'); });
 check('English takhrij', en === 'Narrated by al-Bukhari (1).', en);
 
 check('No page errors', errs.length === 0, errs.join(' | '));
