@@ -342,3 +342,11 @@ body.pages-mode .ruler,body.hide-ruler .ruler,body.focus .ruler{display:none}
   .sg{min-width:44px;padding:2px 4px}.sg.h1{font-size:15px}.sg.h2{font-size:14px}
   .rsel.fnt{width:110px}
 }
+
+/* ===== 0.12: الصفحات منفصلة وقت الكتابة ===== */
+body.vpages .sheet{background:transparent;background-image:none;border:none;box-shadow:none;position:relative}
+.vp-deco{position:absolute;inset:0;pointer-events:none;z-index:0}
+body:not(.vpages) .vp-deco{display:none}
+.vp-card{position:absolute;left:0;right:0;background:#fff;border:1px solid #D9D0BE;box-shadow:0 1px 3px #0000001a}
+.vp-num{position:absolute;left:0;right:0;text-align:center;font-size:12pt;color:#8A8274;font-family:var(--doc-font)}
+body.vpages #page,body.vpages #fnZone{position:relative;z-index:1}

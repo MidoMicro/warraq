@@ -202,6 +202,7 @@ function setPagesView(on) {
     toast(t('pagesReady').replace('{n}', fmtNum(n)));
     WQ._paginateMs = Math.round(performance.now() - t0);
   }
+  if (typeof layoutPages === 'function') layoutPages();
   renderRibbon(); updateStatus();
 }
 function initPagesEvents() {

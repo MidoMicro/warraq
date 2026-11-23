@@ -1,5 +1,5 @@
 /* ===== core: الثوابت والحالة والأدوات العامة ===== */
-const APP_VERSION = '0.11.0';
+const APP_VERSION = '0.12.0';
 const APP_STAGE = '9';
 const APP_UPDATED = '2026-11-18';
 const FILE_FORMAT = 'warraq';

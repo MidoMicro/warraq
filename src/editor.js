@@ -40,6 +40,7 @@ function applyDocSettings() {
   const pm = pageMargins(s);
   [['--mt', pm.t], ['--mr', pm.r], ['--mb', pm.b], ['--ml', pm.l]].forEach(([k, v]) => sheet.style.setProperty(k, v + 'cm'));
   if (typeof refreshRulerSoon === 'function') refreshRulerSoon();
+  if (typeof refreshPagesSoon === 'function') refreshPagesSoon();
   page.classList.remove('ls-1', 'ls-115', 'ls-15', 'ls-2');
   page.classList.add('ls-' + s.lineSpacing);
   page.classList.toggle('num-ar', s.numerals === 'arabic' && s.lang === 'ar');
@@ -367,6 +368,7 @@ function pageContentHeight() {
   return (pageHeightCm(s) - m.t - m.b) * 37.7953;
 }
 function pageOf(elm) {
+  if (typeof VP !== 'undefined' && VP.on) return vpPageOf(elm);
   const H = pageContentHeight();
   const top = (e) => { let y = 0; while (e && e !== page) { y += e.offsetTop; e = e.offsetParent; } return y; };
   const y0 = top(elm);
@@ -379,6 +381,7 @@ function pageOf(elm) {
 }
 function approxPages() {
   if (typeof PV !== 'undefined' && PV.exact) return PV.pages;
+  if (typeof VP !== 'undefined' && VP.on) return VP.pages;
   const last = page.lastElementChild;
   if (!last) return 1;
   const H = pageContentHeight();
@@ -405,4 +408,8 @@ function buildNav() {
 let _derivedT;
 function refreshDerivedSoon() { clearTimeout(_derivedT); _derivedT = setTimeout(refreshDerived, 250); }
 function headings() { return $$('h1,h2,h3', page).filter((h) => h.textContent.trim() && !h.closest('.wq-toc,.wq-bib')); }
-function refreshDerived() { renderCitations(); buildNav(); updateStatus(); }
+function refreshDerived() {
+  // أرقام الصفحات في الفهرس تُحسب من الصفحات المنفصلة، فنحدّثها قبلها
+  if (typeof layoutPages === 'function' && WQ.prefs.sepPages !== false) layoutPages();
+  renderCitations(); buildNav(); if (typeof refreshPagesSoon === 'function') refreshPagesSoon(); updateStatus();
+}

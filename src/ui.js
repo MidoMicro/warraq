@@ -205,6 +205,7 @@ function renderRibbon() {
         rb('☰ ' + t('showMap'), t('showMap'), () => { WQ.prefs.showNav = !WQ.prefs.showNav; applyPrefs(); savePrefs(); renderRibbon(); }, WQ.prefs.showNav ? 'on' : ''),
         rb('▤ ' + t('showRefs'), t('showRefs'), () => { WQ.prefs.showRefs = !WQ.prefs.showRefs; applyPrefs(); savePrefs(); renderRibbon(); }, WQ.prefs.showRefs ? 'on' : ''), sep(),
         rb(icon('ruler', 16) + ' ' + t('showRuler'), t('showRuler'), () => { WQ.prefs.showRuler = WQ.prefs.showRuler === false; applyPrefs(); savePrefs(); renderRibbon(); refreshRuler(); }, WQ.prefs.showRuler !== false ? 'on' : ''), sep(),
+        rb('▯▯ ' + t('sepPages'), t('sepPagesT'), () => { WQ.prefs.sepPages = WQ.prefs.sepPages === false; savePrefs(); renderRibbon(); layoutPages(); }, WQ.prefs.sepPages !== false ? 'on' : ''),
         rb('▭▭ ' + t('pagesView'), t('pagesView'), () => setPagesView(!document.body.classList.contains('pages-mode')), document.body.classList.contains('pages-mode') ? 'on' : ''), sep(),
         rb('◎ ' + t('focus'), t('focus'), () => { document.body.classList.add('focus'); page.focus(); }),
         rb('🎯 ' + t('dailyGoal'), t('goalTitle'), openGoalDialog));
@@ -349,6 +350,7 @@ function applyPrefs() {
   document.body.classList.toggle('hide-ref', !WQ.prefs.showRefs);
   document.body.classList.toggle('hide-ruler', WQ.prefs.showRuler === false);
   document.documentElement.style.setProperty('--zoom', WQ.prefs.zoom / 100);
+  if (typeof refreshPagesSoon === 'function' && WQ.doc) refreshPagesSoon();
 }
 function applyUiLang() {
   const L = I18N[WQ.ui];
@@ -380,6 +382,7 @@ function boot() {
   applyPrefs();
   applyUiLang();
   initRuler();
+  initVPages();
   if (!(page.innerText || '').trim()) openStart();
   $('#btnUiLang').onclick = () => { WQ.ui = WQ.ui === 'ar' ? 'en' : 'ar'; WQ.prefs.ui = WQ.ui; savePrefs(); applyUiLang(); };
   $('#docTitle').addEventListener('input', markDirty);
@@ -407,6 +410,6 @@ function boot() {
       window.claude.use('downloads').then((d) => { WQ.downloads = d || null; }).catch(() => {});
     }
   } catch (e) {}
-  window.WQ_API = { WQ, pageMargins, openFind, frSearch, FR, frReplaceAll, changeIndent, setParaLineSpacing, setBlockIndent, blockIndents, refreshRuler, rulerBlockPos, openMarginsDialog, startPainter, renderIndexes, parseBibTeX, parseRIS, importRefs, toBibTeX, ieeeRef, harvardRef, chicagoRef, mlaRef, inTextFor, crossrefToRef, cleanDOI, hdTypo, sunnahUrl, hadithSpan, loadHadithIndex, loadHadithBook, loadAllHadith, searchHadith, matchHadith, insertHadith, hdTakhrij, hdMatnStart, verifyHadiths, loadTashkeel, tashkeelSelection, ayahText, matchQuran, poemHtml, exportPDF, exportPNG, drawPage, zipStore, paginate, setPagesView, PV: () => PV, takeSnapshot, restoreSnapshot, applyTemplate, docxToWarraq, loadQuran, insertAyah, searchQuran, openStart, refreshDerived, setCiteStyle, addCitation, addFootnote, insertBlock, renderCitations, apaRef, vanRef, serializeDoc, parseDoc, loadDocIntoEditor, sanitizeHtml, countWords, setDocLang, setNumerals, setBlock, insertTable, newDocModel };
+  window.WQ_API = { WQ, applyDocSettings, layoutPages, VP: () => VP, vpPageOf, pageOf, pageMargins, openFind, frSearch, FR, frReplaceAll, changeIndent, setParaLineSpacing, setBlockIndent, blockIndents, refreshRuler, rulerBlockPos, openMarginsDialog, startPainter, renderIndexes, parseBibTeX, parseRIS, importRefs, toBibTeX, ieeeRef, harvardRef, chicagoRef, mlaRef, inTextFor, crossrefToRef, cleanDOI, hdTypo, sunnahUrl, hadithSpan, loadHadithIndex, loadHadithBook, loadAllHadith, searchHadith, matchHadith, insertHadith, hdTakhrij, hdMatnStart, verifyHadiths, loadTashkeel, tashkeelSelection, ayahText, matchQuran, poemHtml, exportPDF, exportPNG, drawPage, zipStore, paginate, setPagesView, PV: () => PV, takeSnapshot, restoreSnapshot, applyTemplate, docxToWarraq, loadQuran, insertAyah, searchQuran, openStart, refreshDerived, setCiteStyle, addCitation, addFootnote, insertBlock, renderCitations, apaRef, vanRef, serializeDoc, parseDoc, loadDocIntoEditor, sanitizeHtml, countWords, setDocLang, setNumerals, setBlock, insertTable, newDocModel };
 }
 document.addEventListener('DOMContentLoaded', boot);
